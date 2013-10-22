@@ -19,8 +19,8 @@ for neighbor in root.iter('{http://www.w3.org/2003/InkML}trace'):
     for cor in t:
         if cor.startswith(" "):
             cor = cor.strip()
-        x.append(cor.split(" ")[0]) 
-        y.append(cor.split(" ")[1])
+        x.append(int(cor.split(" ")[0]))
+        y.append(int(cor.split(" ")[1]))
     xcor.append(x)
     ycor.append(y)
    
@@ -28,11 +28,14 @@ for neighbor in root.iter('{http://www.w3.org/2003/InkML}trace'):
 for neighbor in root.findall('{http://www.w3.org/2003/InkML}traceGroup'):
      for n in neighbor.findall('{http://www.w3.org/2003/InkML}traceGroup'):
           for n2 in n.iter('{http://www.w3.org/2003/InkML}annotation'):
-              print n2.text
+              symbol = n2.text
+              indices = []
               for n in n.iter('{http://www.w3.org/2003/InkML}traceView'):
-                  print n.attrib["traceDataRef"]
-        
-          print " "
-       
-         
+                  indices.append(int(n.attrib["traceDataRef"]))
+                  
+             
+                  
+              
+
+                        
 #f.close()
