@@ -25,10 +25,14 @@ for neighbor in root.iter('{http://www.w3.org/2003/InkML}trace'):
     ycor.append(y)
    
     
-for neighbor in root.iter('{http://www.w3.org/2003/InkML}traceGroup'):
-    for n in neighbor.iter('{http://www.w3.org/2003/InkML}traceView'):
-        print n.attrib["traceDataRef"]
+for neighbor in root.findall('{http://www.w3.org/2003/InkML}traceGroup'):
+     for n in neighbor.findall('{http://www.w3.org/2003/InkML}traceGroup'):
+          for n2 in n.iter('{http://www.w3.org/2003/InkML}annotation'):
+              print n2.text
+              for n in n.iter('{http://www.w3.org/2003/InkML}traceView'):
+                  print n.attrib["traceDataRef"]
         
-    print " "
+          print " "
+       
          
 #f.close()
