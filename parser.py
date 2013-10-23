@@ -1,4 +1,7 @@
 import xml.etree.ElementTree as ET
+import numpy as np
+from scipy.misc import comb
+import matplotlib.pyplot as plt
 
 
 #f = open('AllEM_part4_TRAIN_all.txt')
@@ -40,6 +43,7 @@ for neighbor in root.findall('{http://www.w3.org/2003/InkML}traceGroup'):
                   indices.append(int(n.attrib["traceDataRef"]))
 
 # Remove Duplicates 
+
 newxcor = []
 newycor = []                
 for xc,yc in zip(xcor,ycor): 
@@ -59,7 +63,34 @@ for xc,yc in zip(xcor,ycor):
 xcor = newxcor
 ycor = newycor
 
-# Benzier Curve
+
+# Bezier Curve
+
+newxcor = []
+newycor = [] 
+
+for x in range(len(xcor)):
+    nTimes = 30
+    nPoints = len(xcor[x])
+    xPoints = np.array(xcor[x])
+    yPoints = np.array(ycor[x])
+    
+    t = np.linspace(0.0, 1.0, nTimes)
+    
+    polynomial_array = np.array([ bernstein_poly(i, nPoints-1, t) for i in range(0, nPoints)   ])
+    
+    xvals = np.dot(xPoints, polynomial_array)
+    yvals = np.dot(yPoints, polynomial_array)
+    
+    newxcor.append(xvals.reshape(-1,).tolist())
+    newycor.append(yvals.reshape(-1,).tolist())
+    
+    plt.plot(xvals, yvals)
+    
+xcor = newxcor
+ycor = newycor
+
+
 
 cors = []
 for xc,yc in zip(xcor,ycor):
