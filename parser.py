@@ -1,3 +1,4 @@
+from __future__ import division
 import xml.etree.ElementTree as ET
 import numpy as np
 from scipy.misc import comb
@@ -9,7 +10,7 @@ import matplotlib.pyplot as plt
 #for line in f:
     
 #tree = ET.parse(line)
-tree = ET.parse('../expressmatch/65_alfonso.inkml')
+tree = ET.parse('../expressmatch/98_alfonso.inkml')
 root = tree.getroot()
     
 def bernstein_poly(i, n, t):
@@ -33,7 +34,7 @@ for neighbor in root.iter('{http://www.w3.org/2003/InkML}trace'):
     xcor.append(x)
     ycor.append(y)
    
-    
+symbol_dict = {} 
 for neighbor in root.findall('{http://www.w3.org/2003/InkML}traceGroup'):
      for n in neighbor.findall('{http://www.w3.org/2003/InkML}traceGroup'):
           for n2 in n.iter('{http://www.w3.org/2003/InkML}annotation'):
@@ -41,27 +42,8 @@ for neighbor in root.findall('{http://www.w3.org/2003/InkML}traceGroup'):
               indices = []
               for n in n.iter('{http://www.w3.org/2003/InkML}traceView'):
                   indices.append(int(n.attrib["traceDataRef"]))
-
-# Remove Duplicates 
-
-newxcor = []
-newycor = []                
-for xc,yc in zip(xcor,ycor): 
-    newx = []
-    newy = []              
-    for x, y in zip(xc, yc):
-        t = True
-        for x1c,y1c in zip(newx,newx):
-            if x==x1c and y==y1c:
-                t = False
-        if (t):
-            newx.append(x)
-            newy.append(y)
-    newxcor.append(newx)
-    newycor.append(newy)
-    
-xcor = newxcor
-ycor = newycor
+              symbol_dict[symbol]=indices
+                  
 
 
 # Bezier Curve
@@ -69,35 +51,58 @@ ycor = newycor
 newxcor = []
 newycor = [] 
 
-for x in range(len(xcor)):
-    nTimes = 30
-    nPoints = len(xcor[x])
-    xPoints = np.array(xcor[x])
-    yPoints = np.array(ycor[x])
+totalPoints = 50
+
+points_dict = {}
+
+# create points for symbols using bezier 
+
+for sym in symbol_dict:
+    itr = 1
+    sums = 0
+    length = len(symbol_dict[sym])    
+    nTimes = int(totalPoints/length)
+        
+    temp = []    
     
-    t = np.linspace(0.0, 1.0, nTimes)
+    for x in symbol_dict[sym]:
+        
+        if(itr==length):
+            nTimes = totalPoints - sums
+         
+        nPoints = len(xcor[x])
+        xPoints = np.array(xcor[x])
+        yPoints = np.array(ycor[x])
+        
+        t = np.linspace(0.0, 1.0, nTimes)
+        
+        polynomial_array = np.array([ bernstein_poly(i, nPoints-1, t) for i in range(0, nPoints)   ])
+        
+        xvals = (np.dot(xPoints, polynomial_array)).reshape(-1,).tolist()
+        yvals = (np.dot(yPoints, polynomial_array)).reshape(-1,).tolist()
+       
+        cor = []
+        for x,y in zip(xvals,yvals):           
+            cor.append([x,y])        
+        
+        temp.append(cor)
+       
+        plt.plot(xvals, yvals)
+        itr = itr + 1
+        sums = sums + nTimes
     
-    polynomial_array = np.array([ bernstein_poly(i, nPoints-1, t) for i in range(0, nPoints)   ])
+  
+    points_dict[sym]=temp
     
-    xvals = np.dot(xPoints, polynomial_array)
-    yvals = np.dot(yPoints, polynomial_array)
     
-    newxcor.append(xvals.reshape(-1,).tolist())
-    newycor.append(yvals.reshape(-1,).tolist())
     
-    plt.plot(xvals, yvals)
     
-xcor = newxcor
-ycor = newycor
+    
 
 
 
-cors = []
-for xc,yc in zip(xcor,ycor):
-    cor = []
-    for x,y in zip(xc,yc):           
-        cor.append([x,y])
-    cors.append(cor)
+
+
     
 
 
