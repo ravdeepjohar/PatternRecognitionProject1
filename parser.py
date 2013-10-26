@@ -10,6 +10,12 @@ import csv
 f = open('validate.txt')
 featureList = open('validatefeatures/filelist.txt', 'wb')
 
+indexFile = open("index.csv")
+classDict = {}
+
+for line in indexFile:
+     classDict[line.split(",")[0]]= int((line.split(",")[1]).strip())
+
 
 for line in f:
     
@@ -239,7 +245,9 @@ for line in f:
     for i, j in zip(points_dict, range(len(numStrokes))):
         #print str(i) + " " + str(j)
         tempList = []
-        tempList.append(i)
+        if i == ",":
+            i="comma"
+        tempList.append(classDict[i])
         tempList.append(numStrokes[j])
         tempList.append(aspect_ratio[j])
         
@@ -259,7 +267,7 @@ for line in f:
         csvList.append(tempList)
     
     for i in range(len(csvList)):
-        c = csv.writer(csvFile, delimiter=" ")
+        c = csv.writer(csvFile,)
         c.writerow(csvList[i])
         
     
