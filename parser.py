@@ -7,12 +7,14 @@ import math
 import csv
 
 
-f = open('AllEM_part4_TRAIN_all.txt')
-csvFile = open("features.csv", "wb")
+f = open('validate.txt')
+featureList = open('validatefeatures/filelist.txt', 'wb')
 
 
 for line in f:
     
+    csvFile = open("validatefeatures/" + str(line.split('/')[1].split('.')[0]) + "_feature.csv", "wb")    
+        
     tree = ET.parse(line[:-1])
     #tree = ET.parse('../expressmatch/79_edwin.inkml')
     root = tree.getroot()
@@ -252,14 +254,18 @@ for line in f:
             tempList.append(vicinity_slope[j][k][0])
             tempList.append(vicinity_slope[j][k][1])        
         
+        #print tempList[0]
+            
         csvList.append(tempList)
     
     for i in range(len(csvList)):
-        c = csv.writer(csvFile)
+        c = csv.writer(csvFile, delimiter=" ")
         c.writerow(csvList[i])
         
     
         #csvFile.writelines(str(csvList[i]))
+    csvFile.close() 
+    featureList.write('validatefeatures/' + str(line.split('/')[1].split('.')[0]) + "_feature.csv\n")
 
-csvFile.close()                  
+featureList.close()            
 f.close()
