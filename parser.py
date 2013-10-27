@@ -6,9 +6,10 @@ import matplotlib.pyplot as plt
 import math
 import csv
 
-
+foldername = 'validatefeatures'
 f = open('validate.txt')
-featureList = open('validatefeatures/filelist.txt', 'wb')
+
+featureList = open(foldername + '/filelist.txt', 'wb')
 
 indexFile = open("index.csv")
 classDict = {}
@@ -19,7 +20,7 @@ for line in indexFile:
 
 for line in f:
     
-    csvFile = open("validatefeatures/" + str(line.split('/')[1].split('.')[0]) + "_feature.csv", "wb")    
+    csvFile = open(foldername + "/" + str(line.split('/')[1].split('.')[0]) + "_feature.csv", "wb")    
         
     tree = ET.parse(line[:-1])
     #tree = ET.parse('../expressmatch/79_edwin.inkml')
@@ -155,17 +156,55 @@ for line in f:
     #calculate normalized y coordinates
     
     normalized_Y = []
+    normalized_X = []
+    quadrant = []
     
     for i in points_dict:
         tempYList = []
+        tempXList = []
         for j in range(len(points_dict[i])):
             for coord in points_dict[i][j]:
                 mag = np.sqrt(coord[0] * coord[0] + coord[1] * coord[1])
-                temp = coord[1] / mag
-                tempYList.append(temp)
+                
+                tempX = coord[0] / mag
+                tempY = coord[1] / mag
+                
+                tempYList.append(tempY)
+                tempXList.append(tempX)
         
         normalized_Y.append(tempYList)
+        normalized_X.append(tempXList)
         
+    
+        #calculate quadrants for starting and ending poitns
+        #(1 : NW, 2 : NE, 3 : SW, 4 : SE)
+    
+    
+        startQuadrant = 0
+        endQuadrant = 0
+        
+        end = len(tempXList) - 1
+        
+        if(tempXList[0] < 0.5 and tempYList[0] > 0.5):
+            startQuadrant = 1
+        elif(tempXList[0] > 0.5 and tempYList[0] > 0.5):
+            startQuadrant = 2
+        elif(tempXList[0] < 0.5 and tempYList[0] < 0.5):
+            startQuadrant = 3
+        elif(tempXList[0] > 0.5 and tempYList[0] < 0.5):
+            startQuadrant= 4
+            
+        if(tempXList[end] < 0.5 and tempYList[end] > 0.5):
+            endQuadrant = 1
+        elif(tempXList[end] > 0.5 and tempYList[end] > 0.5):
+            endQuadrant = 2
+        elif(tempXList[end] < 0.5 and tempYList[end] < 0.5):
+            endQuadrant = 3
+        elif(tempXList[end] > 0.5 and tempYList[end] < 0.5):
+            endQuadrant= 4
+                    
+        quadrant.append([startQuadrant, endQuadrant])
+    
     
     #calculate vicinity slope pairs
     
@@ -183,11 +222,14 @@ for line in f:
             vec = [tempList[k+2][0] - tempList[k-2][0], tempList[k+2][1] - tempList[k-2][1]]
             magHorizonal = np.sqrt(horizontal[0] * horizontal[0] + horizontal[1] * horizontal[1])
             magVec = np.sqrt(vec[0] * vec[0] + vec[1] * vec[1])
+            
             cosTheta = (horizontal[0] * vec[0] + horizontal[1] * vec[1])/(magVec * magHorizonal)
+            
             if(cosTheta > 1.0):
                 cosTheta = 1.0
             if(cosTheta < -1.0):
                 cosTheta = -1.0
+            
             sinTheta = math.sin(math.acos(cosTheta))
             
             if(sinTheta > 1.0):
@@ -195,16 +237,19 @@ for line in f:
             if(sinTheta < -1.0):
                 sinTheta = -1.0
             tempSlope.append([sinTheta, cosTheta])
+            #tempSlope.append(theta)
         
         vicinity_slope.append(tempSlope)
         
     #calculate curvature
         
     curvature = []
+    numCusps = []
         
     for i in points_dict:
         tempList = []
         tempCurvature = []
+        tempCusps = 0
         for j in range(len(points_dict[i])):
             for coord in points_dict[i][j]:
                 tempList.append(coord)
@@ -220,15 +265,25 @@ for line in f:
                 cosTheta = 1.0
             if(cosTheta < -1.0):
                 cosTheta = -1.0
+                
             sinTheta = math.sin(math.acos(cosTheta))
+            
             if(sinTheta > 1.0):
                 sinTheta = 1.0
             if(sinTheta < -1.0):
                 sinTheta = -1.0
             tempCurvature.append([sinTheta, cosTheta])
-        
+            #tempCurvature.append(theta)
+            
+            theta = math.acos(cosTheta)
+            if(theta < (25.0 * math.pi)/180.0):
+                tempCusps += 1
+            
+            
+        numCusps.append(tempCusps)
         curvature.append(tempCurvature)
         
+
     
     #calculate number of strokes
     
@@ -250,6 +305,9 @@ for line in f:
         tempList.append(classDict[i])
         tempList.append(numStrokes[j])
         tempList.append(aspect_ratio[j])
+        tempList.append(numCusps[j])
+        tempList.append(quadrant[j][0])
+        tempList.append(quadrant[j][1])
         
         for k in range(len(normalized_Y[j])):
             tempList.append(normalized_Y[j][k])
@@ -257,10 +315,12 @@ for line in f:
         for k in range(len(curvature[j])):
             tempList.append(curvature[j][k][0])
             tempList.append(curvature[j][k][1])
+            #tempList.append(curvature[j][k])
         
         for k in range(len(vicinity_slope[j])):
             tempList.append(vicinity_slope[j][k][0])
-            tempList.append(vicinity_slope[j][k][1])        
+            tempList.append(vicinity_slope[j][k][1])
+            #tempList.append(vicinity_slope[j][k])
         
         #print tempList[0]
             
@@ -273,7 +333,7 @@ for line in f:
     
         #csvFile.writelines(str(csvList[i]))
     csvFile.close() 
-    featureList.write('validatefeatures/' + str(line.split('/')[1].split('.')[0]) + "_feature.csv\n")
+    featureList.write(foldername + '/' + str(line.split('/')[1].split('.')[0]) + "_feature.csv\n")
 
-featureList.close()            
+featureList.close()          
 f.close()
