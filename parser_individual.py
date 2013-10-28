@@ -5,8 +5,11 @@ from scipy.misc import comb
 import matplotlib.pyplot as plt
 import math
 import csv
+import os
 
 foldername = 'validatefeatures'
+if not os.path.exists(foldername):
+    os.makedirs(foldername)
 f = open('validate.txt')
 
 featureList = open(foldername + '/filelist.txt', 'wb')
