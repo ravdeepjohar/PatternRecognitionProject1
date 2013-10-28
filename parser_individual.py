@@ -12,7 +12,7 @@ f = open('validate.txt')
 featureList = open(foldername + '/filelist.txt', 'wb')
 
 
-csvFile = open("one.csv", "wb")
+#csvFile = open("one.csv", "wb")
 
 
 
@@ -425,7 +425,7 @@ for line in f:
         csvList.append(tempList)
     
     for i in range(len(csvList)):
-        c = csv.writer(csvFile,)
+        c = csv.writer(csvFile)
         c.writerow(csvList[i])
         
     csvFile.close() 
