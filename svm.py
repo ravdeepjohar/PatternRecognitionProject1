@@ -3,11 +3,13 @@ import xml.etree.ElementTree as ET
 import numpy as np
 from scipy.misc import comb
 import matplotlib.pyplot as plt
-import math, csv, os
+import math, csv, os, random
 
 test = []
 train = []
 validate = []
+
+splitsSymbol = {}
 
 indexFile = open("index.csv")
 classDict = {}
@@ -79,9 +81,7 @@ def getBezier(symbols,indices,xcor,ycor):
 				yPoints = np.delete(yPoints,index)
 				nPoints = nPoints - 4
 
-			
-			t = np.linspace(0.0, 1.0, nTimes)
-			
+			t = np.linspace(0.0, 1.0, nTimes)			
 			polynomial_array = np.array([ bernstein_poly(i, nPoints-1, t)
 			 for i in range(0, nPoints)   ])
 			
@@ -108,51 +108,82 @@ def main():
 	os.chdir("TrainINKML_v3")
 	from sklearn import svm
 
+	X, y= [], []
+	testX, testy = [], []
 	# feature_functions = []
 
-	# for user in os.listdir("."):
-	# 	for inkmls in os.listdir(user):
-	# 		if inkmls.endswith(".inkml"):
-	# 			filelocation = user+"/"+inkmls
-				
-	tree = ET.parse("expressmatch/101_alfonso.inkml")
-	root = tree.getroot() 
+	for user in os.listdir("."):
+		for inkmls in os.listdir(user):
+			if inkmls.endswith(".inkml"):
+				filelocation = user+"/"+inkmls
+				#tree = ET.parse("expressmatch/101_alfonso.inkml")
+				tree = ET.parse(filelocation)
+				root = tree.getroot() 
+				tempx,tempy = extract_features(root)
+
+				splitValue = split(root)
+
+				if splitValue == 2 or splitValue == 1:
+					X.append(tempx)
+					y.append(tempy)
+				else:
+					testX.append(tempx)
+					testy.append(tempy)
+
+	#X,y = extract_features(root)
+	
+	clf = svm.SVC()
+	clf = clf.fit(X, y)
+
+	#testX = [[1, 0.68, 35]]
+	#testy = [[79]]
+	yes, no = 0.0, 0.0 
+
+	for x,y in zip(testX,testy):
+		answer = clf.predict(x)[0]
+
+		if (answer == y):
+			yes += 1
+		else:
+			no += 0 
+
+
+		print answer
+
+	print "Accuracy:" + str((yes/float(len(testX)))*100)
+
+	# for x in range(len(X)):
+	# 	print X[x],y[x]
+
+def extract_features(root):
 
 	xcor,ycor = getxycor(root)				
 	symbol, indices = getSymbolIndices(root)
 	
 	bezierpoints = getBezier(symbol,indices,xcor,ycor)
-	X = []
-	y= []
+	
 	for sym, j in zip(symbol, range(len(symbol))):
 		feature = []
 		feature.append(numberOfStrokes(sym))
 		feature.append(aspectRatio(bezierpoints,j))
-		feature.append(numberofxcors(xcor,indices[j]))
+		feature.append(numberofcors(xcor,indices[j]))
 
-		X.append(feature)
-		y.append(getLabel(sym))
 
-	clf = svm.SVC()
-	clf = clf.fit(X, y)
 
-	test = [[1, 0.68, 35]]
-	testy = [[79]]
+	return feature,getLabel(sym)
 
-	answer = clf.predict(test)[0]
-	print answer
-
-	# for x in range(len(X)):
-	# 	print X[x],y[x]
 	
 				
 def getLabel(symbol):
+	if symbol == ',':
+		symbol = 'COMMA'
 	return classDict[symbol]
+
 
 def numberOfStrokes(indices):
 	return len(indices)
 
-def numberofxcors(xcor,indices):
+def numberofcors(xcor,indices):
 	no = 0 
 	for x in indices:
 		no += len(xcor[x])
@@ -193,6 +224,35 @@ def aspectRatio(bezierpoints,i):
 
 	return aspect
 
+def split(root):
+
+	global splitsSymbol
+	for neighbor in root.findall('{http://www.w3.org/2003/InkML}annotation'):
+		if neighbor.attrib['type']=="truth":
+						
+			if neighbor.text not in splitsSymbol:
+				rand = random.randint(1,3)
+				splitsSymbol[neighbor.text] = rand
+				return rand
+				
+			if splitsSymbol[neighbor.text] == 1:
+
+				splitsSymbol[neighbor.text] = 2
+
+				return 1
+				
+			elif splitsSymbol[neighbor.text] == 2:
+				
+				splitsSymbol[neighbor.text] = 3
+
+				return 2
+				
+			elif splitsSymbol[neighbor.text] == 3:
+				
+				splitsSymbol[neighbor.text] = 1
+				return 3 
+
+	return 1
 
 
 
