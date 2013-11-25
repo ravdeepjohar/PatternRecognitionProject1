@@ -24,6 +24,9 @@ edges = []
 indexFile = open("index.csv")
 classDict = {}
 
+MAX_STROKES = 5
+combinations = []
+
 for line in indexFile:
 	 classDict[line.split(",")[0]]= int((line.split(",")[1]).strip())
 
@@ -68,7 +71,7 @@ def main():
 	#   for inkmls in os.listdir(user):
 	# 	  if inkmls.endswith(".inkml"):
 				# filelocation = user+"/"+inkmls
-	tree = ET.parse("expressmatch/101_alfonso.inkml")
+	tree = ET.parse("expressmatch/65_alfonso.inkml")
 				# tree = ET.parse(filelocation)
 
 	root = tree.getroot()
@@ -168,12 +171,84 @@ def boundingbox(xcor, ycor):
 
 	# 	pltx.append(vertices[v2].center[0])
 	# 	plty.append(vertices[v2].center[1])
-
+	
+	#create a dictionary for the generated minimal spanning tree
+	
+	searchTree = {}
+	for e in mst:
+		src = e[0].label
+		dest = e[1].label
+		
+		if src in searchTree:
+			searchTree[src] = searchTree[src] + [dest]
+		else:
+			searchTree[src] = [dest]
+		
+		
+		if dest in searchTree:
+			searchTree[dest] = searchTree[dest] + [src]
+		else:
+			searchTree[dest] = [src]
+	
+	#print the minimal spanning tree dictionary
+	for x in searchTree:
+		print str(x) + ':' + str(searchTree[x])
+	
+	#apply iterative deepening search on each node as root of the tree and at depth levels
+	#ranging from 0 - MAX_STROKES, generating all possible combinations of strokes as 
+	#symbols
+	for i in range(len(searchTree)):
+		iterative_deepening(searchTree, i)
 
 	plt.plot(pltx,plty)
 
 
 	plt.show()
+	
+def iterative_deepening(edges, root):
+	parent = []
+	
+	#take one node as root in the spanning tree and apply depth limited search for 
+	#different depth levels to generate stroke combinations. 
+	for k in range(MAX_STROKES):
+		visited = []
+		fringe = []
+		fringe.append(edges.keys()[root])
+		for i in range(len(edges)):
+			parent.append(None)
+		
+		depth_limited_search(edges, parent, visited, fringe, k)
+
+
+#depth limited search, goes to a certain depth and backtracks the
+#path from child node to root creating a stroke combination
+	
+def depth_limited_search(edges, parent, visited, fringe, depth):
+	
+	
+	node = fringe.pop()
+	visited.append(node)
+	
+	if depth == 0:
+		temp = []
+		while node != None:
+			temp.append(node)
+			node = parent[node]
+		if temp not in combinations:
+			combinations.append(temp)
+	else:
+		children = edges[node]
+		for child in children:
+			if child not in visited:
+				fringe.append(child)
+				parent[child] = node
+				depth_limited_search(edges, parent, visited, fringe, depth-1)
+				
+	
+	
+		
+	
+	
 
 def prims(vertices):
 
