@@ -145,7 +145,7 @@ def boundingbox(xcor, ycor):
 	for x in mst:
 		print x 
 
-	print len(mst)
+	#print len(mst)
 
 	pltx = []
 	plty = []
@@ -189,10 +189,11 @@ def boundingbox(xcor, ycor):
 			searchTree[dest] = searchTree[dest] + [src]
 		else:
 			searchTree[dest] = [src]
-	
+	'''
 	#print the minimal spanning tree dictionary
 	for x in searchTree:
 		print str(x) + ':' + str(searchTree[x])
+	'''
 	
 	#apply iterative deepening search on each node as root of the tree and at depth levels
 	#ranging from 0 - MAX_STROKES, generating all possible combinations of strokes as 
@@ -235,7 +236,7 @@ def depth_limited_search(edges, parent, visited, fringe, depth):
 			temp.append(node)
 			node = parent[node]
 		if temp not in combinations:
-			combinations.append(temp)
+			combinations.append(sorted(temp))
 	else:
 		children = edges[node]
 		for child in children:
@@ -243,12 +244,6 @@ def depth_limited_search(edges, parent, visited, fringe, depth):
 				fringe.append(child)
 				parent[child] = node
 				depth_limited_search(edges, parent, visited, fringe, depth-1)
-				
-	
-	
-		
-	
-	
 
 def prims(vertices):
 
