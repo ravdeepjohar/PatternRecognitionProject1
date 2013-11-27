@@ -6,7 +6,6 @@ from scipy.misc import comb
 import matplotlib.pyplot as plt
 import math, csv, os, random
 import csv
-import os
 import pickle
 
 
@@ -23,189 +22,18 @@ edges = []
 
 indexFile = open("index.csv")
 classDict = {}
-classDict2 = {}
 
 for line in indexFile:
 	 classDict[line.split(",")[0]]= int((line.split(",")[1]).strip())
 
-indexFile.close()
-indexFile = open("index.csv")	
-for line in indexFile:
-     classDict2[int((line.split(",")[1]).strip())]= line.split(",")[0]
-indexFile.close()
-		
-trainFeaturesX = []
-trainFeaturesY = []
-segmentTrainFeaturesX = []
-segmentTrainFeaturesY = []
-def main():
-	X, y= [], []
-	X2, y2 = [], []
-	from sklearn import svm
+class Vertex(object):
+	def __init__(self, label):
+		self.label = label
+		self.adjacent = []
+		self.center = []
 
-	
-	# feature_functions = []
-
-
-	print "Start Feature extraction"
-	
-	fTest = open("test.txt", 'rb')
-	os.chdir("TrainINKML_v3")
-	'''fTrainXCSV = open('TrainDataX.csv', 'rb')
-	fTrainYCSV = open('TrainDataY.csv', 'rb')
-	fSegmentTrainXCSV = open('SegmentTrainDataX.csv', 'rb')
-	fSegmentTrainYCSV = open('SegmentTrainDataY.csv', 'rb')
-	
-		
-	
-	for line in fTrainXCSV:
-		temp = line.strip().split(',')
-		temp2 = []
-		for i in temp:
-			temp2.append(float(i))
-		trainFeaturesX.append(temp2)
-	for line in fTrainYCSV:
-		temp = line.strip().split(',')
-		temp2 = []
-		for i in temp:
-			temp2.append(float(i))
-		trainFeaturesY.append(temp2)
-	for line in fSegmentTrainXCSV:
-		temp = line.strip().split(',')
-		temp2 = []
-		for i in temp:
-			temp2.append(float(i))
-		segmentTrainFeaturesX.append(temp2)
-	for line in fSegmentTrainYCSV:
-		temp = line.strip().split(',')
-		temp2 = []
-		for i in temp:
-			temp2.append(float(i))
-		segmentTrainFeaturesY.append(temp2)
-		
-	symbolSVM = svm.SVC()
-	symbolSVM = symbolSVM.fit(trainFeaturesX, trainFeaturesY)
-	
-	segmentSVM = svm.SVC()
-	segmentSVM = segmentSVM.fit(segmentTrainFeaturesX, segmentTrainFeaturesY)
-	'''
-	symbolSVMFile = 	open('symbolSVM', 'rb')
-	segmentSVMFile = open('segmentSVM', 'rb')
-	
-			
-	segmentSVM = pickle.load(segmentSVMFile)
-	symbolSVM = pickle.load(symbolSVMFile)
-	
-	symbolSVMFile.close()
-	segmentSVMFile.close()
-							
-	
-	
-	#line = fTest.readline()
-	
-	#tree = ET.parse(line[:-1].strip())
-	tree = ET.parse("expressmatch/106_david.inkml")
-	
-	root = tree.getroot() 
-	#tempx,tempy = extract_features(root)
-	tempx2,labels = extract_features_Segmentation(root)
-	
-	
-	#print indices2
-	predictedlabels = []
-	
-
-	for tx,ty in zip(tempx2,labels):		
-		predictedlabels.append(segmentSVM.predict(tx)[0])
-	
-	print predictedlabels
-		
-	symbolindices = getSymbolsPairs(predictedlabels)
-	
-	print symbolindices
-		
-	tempx, indices = test_extract_features(root,symbolindices)
-	
-	print len(tempx)
-	classifiedSymbols = []	
-	
-	for tx in tempx:
-		
-		#predictedlabels.append(symbolSVM.predict(tx)[0])
-		classifiedSymbols.append(symbolSVM.predict(tx)[0])
-		#print symbolSVM.predict(tx)[0]
-	print classifiedSymbols
-	
-	generate_lg_file(classifiedSymbols, symbolindices)
-	fTest.close()
-	
-def generate_lg_file(symbolList, indices):
-	if not os.path.exists('nnlg'):
-		os.makedirs('nnlg')
-		
-	#symbolList, indices = getSymbolIndices(root)
-	#symbolIndices = []	
-	#for i in symbolList:
-	#	symbolIndices.append(classDict[i])
-		
-	s = 0
-	lg = []
-	edges = []
-	for i in range(len(symbolList)):
-		sym = classDict2[symbolList[i]]
-		strokes = indices[i]
-		
-		if(len(strokes) > 1):
-			multiStrokes = []
-			for i in range(len(strokes)):
-				tempLG = []
-				tempLG.append('N')
-				tempLG.append(' ' + str(s))
-				multiStrokes.append(s)
-				s = s + 1
-				tempLG.append(' ' + str(sym))
-				tempLG.append(' 1.0')
-				lg.append(tempLG)
-			for i in range(len(multiStrokes)):
-				for j in range(i, len(multiStrokes)):
-					if i != j:
-						tempEdge = []
-						tempEdge.append('E')
-						tempEdge.append(' ' + str(multiStrokes[i]))
-						tempEdge.append(' ' + str(multiStrokes[j]))
-						tempEdge.append(' *')
-						tempEdge.append(' 1.0')
-						edges.append(tempEdge)
-						
-						tempEdge = []
-						tempEdge.append('E')
-						tempEdge.append(' ' + str(multiStrokes[j]))
-						tempEdge.append(' ' + str(multiStrokes[i]))
-						tempEdge.append(' *')
-						tempEdge.append(' 1.0')
-						edges.append(tempEdge)
-		else:
-			tempLG = []
-			tempLG.append('N')
-			tempLG.append(' ' + str(s))
-			s = s + 1
-			tempLG.append(' ' + str(sym))
-			tempLG.append(' 1.0')
-			lg.append(tempLG)
-			
-	lgFile = open('nnlg/test.lg', 'wb')
-	
-	c = csv.writer(lgFile)
-	
-	for i in range(len(lg)):
-		c.writerow(lg[i])
-	
-	#lgFile.write('\n')
-	
-	for i in range(len(edges)):
-		c.writerow(edges[i])
-	
-	lgFile.close()
+	def __repr__(self):
+		return str(self.label)
 
 def getxycor(root):
 	xcor = []
@@ -242,7 +70,82 @@ def getSymbolIndices(root):
 			  indices.append(tempind)
 	return symbols, indices
 
-def shiftPoints(indices,xcor,ycor):
+
+def main():
+	X, y= [], []
+	X2, y2 = [], []
+	from sklearn import svm
+
+	
+	# feature_functions = []
+
+	print "Start Feature extraction"
+	
+	fTrain = open("train.txt", 'rb')
+	os.chdir("TrainINKML_v3")
+	for line in fTrain:
+		tree = ET.parse(line[:-1].strip())
+		root = tree.getroot() 
+		#tempx,tempy = extract_features(root)
+		tempx2,tempy2 = extract_features_Segmentation(root)
+		tempx,tempy = extract_features(root)
+
+		for tx,ty in zip(tempx,tempy):
+			X.append(tx)
+			y.append(ty)
+			
+		for tx,ty in zip(tempx2,tempy2):
+			X2.append(tx)
+			y2.append(ty)
+			
+	csvTrain = open('TrainDataX.csv', 'wb')
+	for i in range(len(X)):
+		c = csv.writer(csvTrain)
+		c.writerow(X[i])
+	
+	csvTrain.close()
+	
+	csvTrain = open('TrainDataY.csv', 'wb')
+	for i in range(len(y)):
+		c = csv.writer(csvTrain)
+		c.writerow([y[i]])
+	
+	csvTrain.close()
+	
+	csvTrain = open('SegmentTrainDataX.csv', 'wb')
+	for i in range(len(X2)):
+		c = csv.writer(csvTrain)
+		c.writerow(X2[i])
+	
+	csvTrain.close()
+	
+	csvTrain = open('SegmentTrainDataY.csv', 'wb')
+	for i in range(len(y2)):
+		c = csv.writer(csvTrain)
+		c.writerow([y2[i]])
+	
+	csvTrain.close()
+	
+	symbolSVM = svm.SVC()
+	symbolSVM = symbolSVM.fit(X, y)
+	
+	segmentSVM = svm.SVC()
+	segmentSVM = segmentSVM.fit(X2, y2)
+	
+	symbolSVMFile = 	open('symbolSVM', 'wb')
+	segmentSVMFile = open('segmentSVM', 'wb')
+	
+	pickle.dump(symbolSVM, symbolSVMFile)
+	pickle.dump(segmentSVM, segmentSVMFile)
+	
+	symbolSVMFile.close()
+	segmentSVMFile.close()
+	
+	
+	
+	
+
+def shiftPoints(symbols,indices,xcor,ycor):
 	
 	for sym in range(len(indices)):
 		newx = []
@@ -281,7 +184,7 @@ def shiftPoints(indices,xcor,ycor):
 	
 
 	
-def normalizedPoints(indices,xcor,ycor):
+def normalizedPoints(symbols,indices,xcor,ycor):
 
 	for sym in range(len(indices)):
 		newx = []
@@ -335,7 +238,7 @@ def bernstein_poly(i, n, t):
 		"""
 		return comb(n, i) * ( t**(n-i) ) * (1 - t)**i
 
-def getBezier(indices,xcor,ycor):
+def getBezier(symbols,indices,xcor,ycor):
 	bezierpoints = []
 	totalPoints = 34
 	# create points for symbols using bezier 
@@ -395,9 +298,10 @@ def extract_features_Segmentation(root):
 
 	indices, labels = getstrokepairs(indices)
 
-	xcor,ycor = shiftPoints(indices,xcor,ycor)
-	xcor,ycor = normalizedPoints(indices,xcor,ycor)
-	bezierpoints = getBezier(indices,xcor,ycor)
+
+	xcor,ycor = shiftPoints(symbol,indices,xcor,ycor)
+	xcor,ycor = normalizedPoints(symbol,indices,xcor,ycor)
+	bezierpoints = getBezier(symbol,indices,xcor,ycor)
 
 	features = []
 	
@@ -426,109 +330,36 @@ def extract_features_Segmentation(root):
 
 
 	return features, labels
-	
-def getSymbolsPairs(labels):
-	#indices = [1, 0, 1, 0, 0, 1, 1, 0, 1]
-	
-	numberofstrokes = len(labels)
-	strokes = []
-	symbolList = []
-	visited = []
-	for i in range(numberofstrokes):
-		strokes.append([i, i+1])
-	
-	#print strokes[0][0]
-	for i in range(numberofstrokes):
-		if labels[i] == 0:
-			if strokes[i][0] not in visited:
-				symbolList.append([strokes[i][0]])
-				visited.append(strokes[i][0])
-			if strokes[i][1] not in visited:
-				symbolList.append([strokes[i][1]])
-				visited.append(strokes[i][1])
-		elif labels[i] == 1:
-			if len(symbolList) > 0:
-				temp = symbolList.pop()
-				temp.append(strokes[i][1])
-				visited.append(strokes[i][1])
-			else:
-				temp = []
-				temp.append(strokes[i][0])
-				temp.append(strokes[i][1])
-				visited.append(strokes[i][0])
-				visited.append(strokes[i][1])
-			
-			symbolList.append(temp)
-			
-			
-	
-	return symbolList
-	
+
 def getstrokepairs(indices):
-	#print indices
+
 	numberofstrokes = 0
 
 	for x in indices:
 		numberofstrokes += len(x)
 
 	strokepairs = dict()
-	sp = []
-	labels = []
-	
 
 	for i in range(numberofstrokes-1):
 
 		strokepairs[tuple([i,i+1])] = 0 
-		sp.append([i,i+1])
-		labels.append(0)
-		
-	
 
 	
 	for x in indices:
 		if(len(x)>1):
 			for p in range(len(x)-1):
-				for l in range(len(sp)):
-					if([x[p],x[p+1]]==sp[l]):
-						 labels[l]= 1
-	#print labels
-	#print sp
-	'''newindices = []
+				strokepairs[tuple([x[p],x[p+1]])] = 1
+
+	newindices = []
 	newsymbols = []
 	for x in strokepairs:
 		newindices.append(list(x))
-		newsymbols.append(strokepairs[x])'''
+		newsymbols.append(strokepairs[x])
 
 
-	return sp,labels#newindices , newsymbols
+	return newindices , newsymbols
 
-def test_extract_features(root,indices):
 
-	xcor,ycor = getxycor(root) 
-	xcor,ycor = shiftPoints(indices,xcor,ycor)
-	xcor,ycor = normalizedPoints(indices,xcor,ycor)
-	bezierpoints = getBezier(indices,xcor,ycor)
-
-	features = []
-	
-
-	for  j in range(len(indices)):
-
-		feature = []
-
-		for x in bezierpoints[j]:
-			for xp in x:
-				feature.append(xp[0])
-
-		for x in bezierpoints[j]:
-			for xp in x:
-				feature.append(xp[1])
-
-		features.append(feature)
-		
-		
-
-	return features, indices
 
 
 def extract_features(root):
@@ -558,7 +389,7 @@ def extract_features(root):
 		
 		labels.append(getLabel(sym))
 
-	return features, labels, indices
+	return features, labels
 
 def getMinMax(x,y):
 	xmin = min(x)
@@ -621,19 +452,19 @@ def boundingbox(xcor, ycor):
 	for ind in range(len(xcor)):
 
 		for ind2 in range(len(xcor)):
-			if ind2 != ind:
-				dist = distance(vertices[ind].center,vertices[ind2].center)
-				vertices[ind].adjacent.append([vertices[ind2],dist])
-				# #connect(vertices[ind], vertices[ind2], dist)
-				graph[ind][ind2] = dist
+		 	if ind2 != ind:
+		 		dist = distance(vertices[ind].center,vertices[ind2].center)
+		 		vertices[ind].adjacent.append([vertices[ind2],dist])
+		 		# #connect(vertices[ind], vertices[ind2], dist)
+		 		graph[ind][ind2] = dist
 	
 	
-	'''mst = prims(vertices)
+	mst = prims(vertices)
 
 	for x in mst:
 		print x 
 
-	print len(mst)'''
+	print len(mst)
 
 	pltx = []
 	plty = []
