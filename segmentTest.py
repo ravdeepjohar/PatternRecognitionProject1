@@ -242,6 +242,60 @@ def getSymbolIndices(root):
 			  indices.append(tempind)
 	return symbols, indices
 
+def shiftPoints_SegmentStrokes(indices,xcor,ycor):
+
+	symbolpointsX = []
+	symbolpointsY = []
+
+	
+	for sym in range(len(indices)):
+		
+		newx = []
+		newy = []
+
+		
+		for x in indices[sym]:
+			for xp, yp in zip(xcor[x],ycor[x]):
+				newx.append(xp)
+				newy.append(yp)
+
+		bbx,bby = getBoundingBox(newx,newy)
+		
+		xmin = bbx[3]
+		ymax = bby[3]
+
+		templistX = []
+		templistY = []
+
+						
+		for x in indices[sym]:
+		
+
+			tempy = ycor[x]
+			ty = [y - ymax for y in tempy]
+			
+			tempx = xcor[x]
+			tx = [xp - xmin for xp in tempx]		
+					
+			
+			templistX.append(tx)
+			templistY.append(ty)
+				
+		
+		symbolpointsX.append(templistX)
+		symbolpointsY.append(templistY)
+
+	
+
+	# for x,y in zip(symbolpointsX, symbolpointsY):		
+	# 	plt.figure()
+	# 	for x1,y1 in zip(x,y):
+	# 		plt.scatter(x1,y1)
+	# 	plt.show()
+
+
+	return symbolpointsX,symbolpointsY
+
 def shiftPoints(indices,xcor,ycor):
 	
 	for sym in range(len(indices)):
@@ -329,6 +383,57 @@ def normalizedPoints(indices,xcor,ycor):
 
 	return xcor,ycor
 
+ef normalizedPoints_SegmentStrokes(indices,symbolpointsX,symbolpointsY):
+
+	for x,y in zip(symbolpointsX, symbolpointsY):	
+
+		newx = []
+		newy = []
+		for x1,y1 in zip(x,y):
+			for x2,y2 in zip(x1,y1):
+				newx.append(x2)
+				newy.append(y2)
+
+		xmin,ymin,xmax,ymax = getMinMax(newx,newy)
+
+
+		testx = []
+		testy = []
+		
+		for x1,y1 in zip(x,y):
+
+			tempy = y1
+
+			if (ymax-ymin) == 0 :
+				tempy[:] = [ 0 for y in tempy]
+			else:
+				tempy[:] = [ ((y - ymin) / (ymax-ymin)) for y in tempy]
+
+			y1 = tempy
+
+
+			tempx = x1
+
+			if (xmax-xmin) == 0:
+				tempx = [ 0 for xp in tempx]
+			else:
+				tempx[:] = [((xp- xmin) / (xmax-xmin))  for xp in tempx]
+
+			x1 = tempx
+
+			
+	# for x,y in zip(symbolpointsX, symbolpointsY):		
+	# 	#plt.figure()
+	# 	for x1,y1 in zip(x,y):
+			
+	# 		#plt.scatter(x1,y1)
+	# 	#plt.show()	
+			
+		
+
+	return symbolpointsX,symbolpointsY
+
+
 def bernstein_poly(i, n, t):
 		"""
 		 The Bernstein polynomial of n, i as a function of t
@@ -385,47 +490,243 @@ def getBezier(indices,xcor,ycor):
 	
 	return bezierpoints
 
+def getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY):
+	bezierpointsX = []
+	bezierpointsY = []
+	totalPoints = 34
+	# create points for symbols using bezier 
+
+	for x,y in zip(symbolpointsX, symbolpointsY):	
+
+		newx = []
+		newy = []
+
+		itr = 1
+		sums = 0
+		length = len(x)    
+		nTimes = int(totalPoints/length)
+
+		templistX = []
+		templistY = []
+
+		for x1,y1 in zip(x,y):
+			
+			if(itr==length):
+				nTimes = totalPoints - sums
+		
+			nPoints = len(x1)
+			xPoints = np.array(x1)
+			yPoints = np.array(y1)
+
+			t = np.linspace(0.0, 1.0, nTimes)           
+			polynomial_array = np.array([ bernstein_poly(i, nPoints-1, t)
+			 for i in range(0, nPoints)   ])
+			
+			
+			templistX.append((np.dot(xPoints, polynomial_array)).reshape(-1,).tolist())
+			templistY.append((np.dot(yPoints, polynomial_array)).reshape(-1,).tolist())
+		   
+			itr = itr + 1
+			sums = sums + nTimes
+
+		bezierpointsX.append(templistX)
+		bezierpointsY.append(templistY)
+
+
+	'''for x,y in zip(bezierpointsX, bezierpointsY):		
+		plt.figure()
+		for x1,y1 in zip(x,y):
+			plt.scatter(x1,y1)
+			
+		plt.show()'''
+	
+	return bezierpointsX,bezierpointsY
+
+def calculate_bounding_box_distance(x, y):
+	centers = []
+	for x1, y1 in zip(x, y):
+		
+		centers.append(getCenter(x1, y1))
+		
+	'''plt.figure()
+	for x1,y1 in zip(x,y):
+		plt.scatter(x1,y1)
+		bla1,bla2 = getCenter(x1, y1)
+		plt.scatter(bla1,bla2, color = 'r')
+			
+	plt.show()'''
+	d = distance(centers[0], centers[1])
+	
+	return d
+	
+def calculate_average_center_distance(x, y):
+	centers = []
+	for x1, y1 in zip(x, y):
+		
+		centers.append(average(x1, y1))
+				
+
+	d = distance(centers[0], centers[1])
+	
+	return d
+
+def calculate_max_distance(x, y):
+	maxDistance = -1.0
+	for x1, y1 in zip(x[0], y[0]):
+		for x2, y2 in zip(x[1], y[1]):
+			d = distance([x1, y1], [x2, y2])
+			if d > maxDistance:
+				maxDistance = d	
+	return maxDistance
+
+
+def calculate_two_stroke_distance(x, y):
+	first_stroke_end_x = x[0][len(x[0]) - 1]
+	first_stroke_end_y = x[0][len(x[0]) - 1]
+	second_stroke_start_x = x[1][0]
+	second_stroke_start_y = y[1][0]
+	
+	
+	'''plt.figure()
+	for x1,y1 in zip(x,y):
+		plt.scatter(x1,y1)
+		bla1,bla2 = getCenter(x1, y1)
+		plt.scatter(first_stroke_end_x,first_stroke_end_y, color = 'r')
+		plt.scatter(second_stroke_start_x, second_stroke_start_y, color = 'r')
+			
+	plt.show()'''
+	
+	offset = second_stroke_start_x - first_stroke_end_x
+	return offset
+
+def calculate_bounding_box_vertical_distance(x, y):
+	centers = []
+	for x1, y1 in zip(x, y):
+		
+		centers.append(getCenter(x1, y1))
+		
+	'''plt.figure()
+	for x1,y1 in zip(x,y):
+		plt.scatter(x1,y1)
+		bla1,bla2 = getCenter(x1, y1)
+		plt.scatter(bla1,bla2, color = 'r')
+			
+	plt.show()'''
+	d = centers[1][1] - centers[0][1]
+	
+	return d
+	
+def calculate_writing_slope(x, y):
+	first_stroke_end_x = x[0][len(x[0]) - 1]
+	first_stroke_end_y = x[0][len(x[0]) - 1]
+	second_stroke_start_x = x[1][0]
+	second_stroke_start_y = y[1][0]
+	
+	vector = [second_stroke_start_x - first_stroke_end_x, second_stroke_start_y-first_stroke_end_y]
+	horizontal = [1.0, 0.0]
+	
+	dotProd = vector[0] * horizontal[0] + vector[1] * horizontal[1]
+	magHorizontal = math.sqrt(horizontal[0]**2 + horizontal[1]**2)
+	magVector = math.sqrt(vector[0]**2 + vector[1]**2)
+	
+	denom = (magHorizontal*magVector)
+	if denom == 0:
+		denom = 0.001
+	cosTheta = dotProd/denom
+	theta = math.acos(cosTheta)
+	
+	'''plt.figure()
+	for x1,y1 in zip(x,y):
+		plt.scatter(x1,y1)
+		bla1,bla2 = getCenter(x1, y1)
+		plt.scatter(first_stroke_end_x,first_stroke_end_y, color = 'r')
+		plt.scatter(second_stroke_start_x, second_stroke_start_y, color = 'r')
+			
+	plt.show()'''
+	
+	return theta
+	
+def calculate_writing_curvature(x, y):
+	first_stroke_start_x = x[0][0]
+	first_stroke_start_y = y[0][0]
+	first_stroke_end_x = x[0][len(x[0]) - 1]
+	first_stroke_end_y = x[0][len(x[0]) - 1]
+	second_stroke_start_x = x[1][0]
+	second_stroke_start_y = y[1][0]
+	second_stroke_end_x = x[1][len(x[1]) - 1]
+	second_stroke_end_y = y[1][len(y[1]) - 1]
+	
+	first_stroke_vector = [first_stroke_end_x - first_stroke_start_x, first_stroke_end_y - first_stroke_start_y]
+	second_stroke_vector = [second_stroke_end_x - second_stroke_start_x, second_stroke_end_y - second_stroke_start_y]
+	
+	dotProd = first_stroke_vector[0] * second_stroke_vector[0] + first_stroke_vector[1] * second_stroke_vector[1]
+	first_vector_magnitude = math.sqrt(first_stroke_vector[0]**2 + first_stroke_vector[1]**2)
+	second_vector_magnitude = math.sqrt(second_stroke_vector[0]**2 + second_stroke_vector[1]**2)
+	
+	denom = (first_vector_magnitude*second_vector_magnitude)
+	if denom == 0:
+		denom = 0.001
+	cosTheta = dotProd/denom
+	
+	#cosTheta should be in range [-1, 1]
+	if(cosTheta >= 1.0):
+		cosTheta = 0.9999
+	elif(cosTheta <= -1.0):
+		cosTheta = -0.9999
+	theta = math.acos(cosTheta)
+	
+	
+	return theta
+
+def calculate_bounding_box_size_difference(x, y):
+	sizes = []
+	for x1, y1 in zip(x, y):
+		boundinBoxX, boundingBoxY = getBoundingBox(x1, y1)
+		width = distance([boundinBoxX[0], boundingBoxY[0]], [boundinBoxX[1], boundingBoxY[1]])
+		height = distance([boundinBoxX[1], boundingBoxY[1]], [boundinBoxX[2], boundingBoxY[2]])
+		sizes.append(width*height)
+	
+	diff = sizes[1] - sizes[0]
+	return diff
+
+
+
 def extract_features_Segmentation(root):
 
 	xcor,ycor = getxycor(root) 
 	symbol, indices = getSymbolIndices(root)
 
-	# for x,y in zip(symbol,indices):
-	# 	print x, y 
+	#for x,y in zip(symbol,indices):
+		#print x, y 
 
 	indices, labels = getstrokepairs(indices)
+	
+	#print indices
 
-	xcor,ycor = shiftPoints(indices,xcor,ycor)
-	xcor,ycor = normalizedPoints(indices,xcor,ycor)
-	bezierpoints = getBezier(indices,xcor,ycor)
-
+	xcor,ycor = shiftPoints_SegmentStrokes(indices,xcor,ycor)
+	xcor,ycor = normalizedPoints_SegmentStrokes(indices,xcor,ycor)
+	xcor,ycor = getBezier_SegmentationStrokes(indices,xcor,ycor)
+	
 	features = []
 	
-
-	for sym, j in zip(labels, range(len(labels))):
-
+		
+	for x, y in zip(xcor, ycor):
 		feature = []
-
-		for x in bezierpoints[j]:
-			for xp in x:
-				feature.append(xp[0])
-
-		for x in bezierpoints[j]:
-			for xp in x:
-				feature.append(xp[1])
+		feature.append(calculate_bounding_box_distance(x, y))
+		feature.append(calculate_average_center_distance(x,y))
+		feature.append(calculate_max_distance(x, y))
+		feature.append(calculate_two_stroke_distance(x, y))
+		feature.append(calculate_bounding_box_vertical_distance(x, y))
+		feature.append(calculate_writing_slope(x, y))
+		feature.append(calculate_writing_curvature(x, y))
+		feature.append(calculate_bounding_box_size_difference(x, y))
 
 		features.append(feature)
-		
-	#print labels, indices
 
-	# for x,y in zip(features,labels):
-	# 	print x ,y 
-	# 	print " "
-
-	# print " "
-
+	
 
 	return features, labels
+
 	
 def getSymbolsPairs(labels):
 	#indices = [1, 0, 1, 0, 0, 1, 1, 0, 1]
@@ -599,6 +900,12 @@ def getCenter(x,y):
 def distance(a,b):
 
 	return sum([(a[i]-b[i])**2 for i in range(len(a))])**0.5
+
+def average(x,y):
+	
+	return sum(x1 for x1 in x)/len(x), sum(y1 for y1 in y)/len(y)
+
+	
 
 def boundingbox(xcor, ycor):
 
