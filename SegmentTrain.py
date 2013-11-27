@@ -397,7 +397,7 @@ def getBezier(indices,xcor,ycor):
 	totalPoints = 50
 	# create points for symbols using bezier 
 	
-	for sym in range(len(symbols)):
+	for sym in range(len(indices)):
 		itr = 1
 		sums = 0
 		length = len(indices[sym])    
@@ -433,13 +433,13 @@ def getBezier(indices,xcor,ycor):
 			
 			temp.append(cor)
 
-			plt.plot(xvals, yvals)
-			plt.scatter(xvals, yvals)
+			# plt.plot(xvals, yvals)
+			# plt.scatter(xvals, yvals)
 
 
 			itr = itr + 1
 			sums = sums + nTimes
-		plt.show() 
+		# plt.show() 
 		bezierpoints.append(temp)
 	
 	return bezierpoints
@@ -534,7 +534,6 @@ def extract_features(root):
 
 	xcor,ycor = getxycor(root) 
 	symbol, indices = getSymbolIndices(root)
-	print indices
 	xcor,ycor = shiftPoints(indices,xcor,ycor)
 	xcor,ycor = normalizedPoints(indices,xcor,ycor)
 	bezierpoints = getBezier(indices,xcor,ycor)
