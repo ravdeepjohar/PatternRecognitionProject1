@@ -75,68 +75,66 @@ def main():
 	
 	fTrain = open("train.txt", 'rb')
 	os.chdir("TrainINKML_v3")
-	#for line in fTrain:
-	line = fTrain.readline()
-	tree = ET.parse(line[:-1].strip())
-	tree = ET.parse("expressmatch/65_alfonso.inkml")
-	root = tree.getroot() 
-	tempx,tempy = extract_features(root)
-	#tempx2,tempy2 = 
-	extract_features_Segmentation(root)
-	#tempx,tempy = extract_features(root)
+	for line in fTrain:
+		line = fTrain.readline()
+		tree = ET.parse(line[:-1].strip())
+		#tree = ET.parse("expressmatch/65_alfonso.inkml")
+		root = tree.getroot() 
+		#tempx,tempy = extract_features(root)
+		tempx2,tempy2 = extract_features_Segmentation(root)
+		#tempx,tempy = extract_features(root)
 
 	#for tx,ty in zip(tempx,tempy):
 		#X.append(tx)
 		#y.append(ty)
 		
-	#for tx,ty in zip(tempx2,tempy2):
-		#X2.append(tx)
-		#y2.append(ty)
-	'''		
-	csvTrain = open('TrainDataX.csv', 'wb')
-	for i in range(len(X)):
-		c = csv.writer(csvTrain)
-		c.writerow(X[i])
+		for tx,ty in zip(tempx2,tempy2):
+			X2.append(tx)
+			y2.append(ty)
+
+		
+	# csvTrain = open('TrainDataX.csv', 'wb')
+	# for i in range(len(X)):
+	# 	c = csv.writer(csvTrain)
+	# 	c.writerow(X[i])
 	
-	csvTrain.close()
+	# csvTrain.close()
 	
-	csvTrain = open('TrainDataY.csv', 'wb')
-	for i in range(len(y)):
-		c = csv.writer(csvTrain)
-		c.writerow([y[i]])
+	# csvTrain = open('TrainDataY.csv', 'wb')
+	# for i in range(len(y)):
+	# 	c = csv.writer(csvTrain)
+	# 	c.writerow([y[i]])
 	
-	csvTrain.close()
+	# csvTrain.close()
 	
-	csvTrain = open('SegmentTrainDataX.csv', 'wb')
-	for i in range(len(X2)):
-		c = csv.writer(csvTrain)
-		c.writerow(X2[i])
+	# csvTrain = open('SegmentTrainDataX.csv', 'wb')
+	# for i in range(len(X2)):
+	# 	c = csv.writer(csvTrain)
+	# 	c.writerow(X2[i])
 	
-	csvTrain.close()
+	# csvTrain.close()
 	
-	csvTrain = open('SegmentTrainDataY.csv', 'wb')
-	for i in range(len(y2)):
-		c = csv.writer(csvTrain)
-		c.writerow([y2[i]])
+	# csvTrain = open('SegmentTrainDataY.csv', 'wb')
+	# for i in range(len(y2)):
+	# 	c = csv.writer(csvTrain)
+	# 	c.writerow([y2[i]])
 	
-	csvTrain.close()
+	# csvTrain.close()
 	
-	symbolSVM = svm.SVC()
-	symbolSVM = symbolSVM.fit(X, y)
+	# symbolSVM = svm.SVC()
+	# symbolSVM = symbolSVM.fit(X, y)
 	
 	segmentSVM = svm.SVC()
 	segmentSVM = segmentSVM.fit(X2, y2)
 	
-	symbolSVMFile = 	open('symbolSVM', 'wb')
+	#symbolSVMFile = open('symbolSVM', 'wb')
 	segmentSVMFile = open('segmentSVM', 'wb')
 	
-	pickle.dump(symbolSVM, symbolSVMFile)
+	#pickle.dump(symbolSVM, symbolSVMFile)
 	pickle.dump(segmentSVM, segmentSVMFile)
 	
-	symbolSVMFile.close()
+	#symbolSVMFile.close()
 	segmentSVMFile.close()
-	'''
-	
 	
 	
 
@@ -602,43 +600,25 @@ def extract_features_Segmentation(root):
 	xcor,ycor = normalizedPoints_SegmentStrokes(indices,xcor,ycor)
 	xcor,ycor = getBezier_SegmentationStrokes(indices,xcor,ycor)
 	
-	# features = []
+	features = []
 	
-	
-	# for sym, j in zip(labels, range(len(labels))):
 		
-	# 	feature = []
-
-	# 	for x in bezierpoints[j]:
-	# 		for xp in x:
-	# 			feature.append(xp[0])
-
-	# 	for x in bezierpoints[j]:
-	# 		for xp in x:
-	# 			feature.append(xp[1])
-
-	# 	features.append(feature)
-		
-		
-	#print labels, indices
-
-	# for x,y in zip(features,labels):
-	# 	print x ,y 
-	# 	print " "
-
-	# print " "
-	
 	for x, y in zip(xcor, ycor):
-		#print calculate_bounding_box_distance(x, y)
-		#print calculate_average_center_distance(x,y)
-		#print calculate_max_distance(x, y)
-		#print calculate_two_stroke_distance(x, y)
-		#print calculate_bounding_box_vertical_distance(x, y)
-		#print calculate_writing_slope(x, y)
-		#print calculate_writing_curvature(x, y)
-		#print calculate_bounding_box_size_difference(x, y)
+		feature = []
+		feature.append(calculate_bounding_box_distance(x, y))
+		feature.append(calculate_average_center_distance(x,y))
+		feature.append(calculate_max_distance(x, y))
+		feature.append(calculate_two_stroke_distance(x, y))
+		feature.append(calculate_bounding_box_vertical_distance(x, y))
+		feature.append(calculate_writing_slope(x, y))
+		feature.append(calculate_writing_curvature(x, y))
+		feature.append(calculate_bounding_box_size_difference(x, y))
 
-	return #features, labels
+		features.append(feature)
+
+	
+
+	return features, labels
 
 def getstrokepairs(indices):
 
