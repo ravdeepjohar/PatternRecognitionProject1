@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import math, csv, os, random
 import csv
 import pickle
-
+from scipy.interpolate import interp1d
 
 
 test = []
@@ -26,14 +26,6 @@ classDict = {}
 for line in indexFile:
 	 classDict[line.split(",")[0]]= int((line.split(",")[1]).strip())
 
-class Vertex(object):
-	def __init__(self, label):
-		self.label = label
-		self.adjacent = []
-		self.center = []
-
-	def __repr__(self):
-		return str(self.label)
 
 def getxycor(root):
 	xcor = []
@@ -88,8 +80,9 @@ def main():
 	tree = ET.parse(line[:-1].strip())
 	tree = ET.parse("expressmatch/65_alfonso.inkml")
 	root = tree.getroot() 
-	#tempx,tempy = extract_features(root)
-	tempx2,tempy2 = extract_features_Segmentation(root)
+	tempx,tempy = extract_features(root)
+	#tempx2,tempy2 = 
+	extract_features_Segmentation(root)
 	#tempx,tempy = extract_features(root)
 
 	#for tx,ty in zip(tempx,tempy):
@@ -157,6 +150,8 @@ def shiftPoints(indices,xcor,ycor):
 				newx.append(xp)
 				newy.append(yp)
 
+		
+
 		bbx,bby = getBoundingBox(newx,newy)
 		xmin = bbx[3]
 		ymax = bby[3]
@@ -182,6 +177,60 @@ def shiftPoints(indices,xcor,ycor):
 		#plt.show()
 
 	return xcor,ycor
+
+def shiftPoints_SegmentStrokes(indices,xcor,ycor):
+
+	symbolpointsX = []
+	symbolpointsY = []
+
+	
+	for sym in range(len(indices)):
+		
+		newx = []
+		newy = []
+
+		
+		for x in indices[sym]:
+			for xp, yp in zip(xcor[x],ycor[x]):
+				newx.append(xp)
+				newy.append(yp)
+
+		bbx,bby = getBoundingBox(newx,newy)
+		
+		xmin = bbx[3]
+		ymax = bby[3]
+
+		templistX = []
+		templistY = []
+
+						
+		for x in indices[sym]:
+		
+
+			tempy = ycor[x]
+			ty = [y - ymax for y in tempy]
+			
+			tempx = xcor[x]
+			tx = [xp - xmin for xp in tempx]		
+					
+			
+			templistX.append(tx)
+			templistY.append(ty)
+				
+		
+		symbolpointsX.append(templistX)
+		symbolpointsY.append(templistY)
+
+	
+
+	# for x,y in zip(symbolpointsX, symbolpointsY):		
+	# 	plt.figure()
+	# 	for x1,y1 in zip(x,y):
+	# 		plt.scatter(x1,y1)
+	# 	plt.show()
+
+
+	return symbolpointsX,symbolpointsY
 
 	
 
@@ -234,54 +283,55 @@ def normalizedPoints(indices,xcor,ycor):
 
 	return xcor,ycor
 	
-def normalizedPoints_SegmentStrokes(indices,xcor,ycor):
+def normalizedPoints_SegmentStrokes(indices,symbolpointsX,symbolpointsY):
 
-	for sym in range(len(indices)):
-		#newx = []
-		#newy = []
+	for x,y in zip(symbolpointsX, symbolpointsY):	
 
-		#for x in indices[sym]:
-			#for xp, yp in zip(xcor[x],ycor[x]):
-				#newx.append(xp)
-				#newy.append(yp)
-		newx = xcor[sym]
-		newy = ycor[sym]
+		newx = []
+		newy = []
+		for x1,y1 in zip(x,y):
+			for x2,y2 in zip(x1,y1):
+				newx.append(x2)
+				newy.append(y2)
+
 		xmin,ymin,xmax,ymax = getMinMax(newx,newy)
-		
+
+
 		testx = []
 		testy = []
 		
-		for x in indices[sym]:
+		for x1,y1 in zip(x,y):
 
-			tempy = ycor[x]
+			tempy = y1
 
 			if (ymax-ymin) == 0 :
 				tempy[:] = [ 0 for y in tempy]
 			else:
 				tempy[:] = [ ((y - ymin) / (ymax-ymin)) for y in tempy]
 
-			ycor[x] = tempy
+			y1 = tempy
 
 
-			tempx = xcor[x]
+			tempx = x1
 
 			if (xmax-xmin) == 0:
 				tempx = [ 0 for xp in tempx]
 			else:
 				tempx[:] = [((xp- xmin) / (xmax-xmin))  for xp in tempx]
 
-			xcor[x] = tempx
+			x1 = tempx
 
 			
-			for xp, yp in zip(xcor[x],ycor[x]):
-				testx.append(xp)
-				testy.append(yp)
+	# for x,y in zip(symbolpointsX, symbolpointsY):		
+	# 	#plt.figure()
+	# 	for x1,y1 in zip(x,y):
+			
+	# 		#plt.scatter(x1,y1)
+	# 	#plt.show()	
+			
+		
 
-		#plt.figure()
-		#plt.scatter(testx,testy)
-		#plt.show()
-
-	return xcor,ycor
+	return symbolpointsX,symbolpointsY
 
 def bernstein_poly(i, n, t):
 		"""
@@ -289,12 +339,65 @@ def bernstein_poly(i, n, t):
 		"""
 		return comb(n, i) * ( t**(n-i) ) * (1 - t)**i
 
+def getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY):
+	bezierpointsX = []
+	bezierpointsY = []
+	totalPoints = 50
+	# create points for symbols using bezier 
+
+	for x,y in zip(symbolpointsX, symbolpointsY):	
+
+		newx = []
+		newy = []
+
+		itr = 1
+		sums = 0
+		length = len(x)    
+		nTimes = int(totalPoints/length)
+
+		templistX = []
+		templistY = []
+
+		for x1,y1 in zip(x,y):
+			
+			if(itr==length):
+				nTimes = totalPoints - sums
+		
+			nPoints = len(x1)
+			xPoints = np.array(x1)
+			yPoints = np.array(y1)
+
+			t = np.linspace(0.0, 1.0, nTimes)           
+			polynomial_array = np.array([ bernstein_poly(i, nPoints-1, t)
+			 for i in range(0, nPoints)   ])
+			
+			
+			templistX.append((np.dot(xPoints, polynomial_array)).reshape(-1,).tolist())
+			templistY.append((np.dot(yPoints, polynomial_array)).reshape(-1,).tolist())
+		   
+			itr = itr + 1
+			sums = sums + nTimes
+
+		bezierpointsX.append(templistX)
+		bezierpointsY.append(templistY)
+
+
+	for x,y in zip(bezierpointsX, bezierpointsY):		
+		plt.figure()
+		for x1,y1 in zip(x,y):
+			plt.scatter(x1,y1)
+			
+		plt.show()	
+	
+	return symbolpointsX,symbolpointsY
+	
+
 def getBezier(indices,xcor,ycor):
 	bezierpoints = []
-	totalPoints = 5
+	totalPoints = 50
 	# create points for symbols using bezier 
 	
-	for sym in range(len(indices)):
+	for sym in range(len(symbols)):
 		itr = 1
 		sums = 0
 		length = len(indices[sym])    
@@ -329,18 +432,17 @@ def getBezier(indices,xcor,ycor):
 				cor.append([x,y])        
 			
 			temp.append(cor)
-			plt.figure()
+
+			plt.plot(xvals, yvals)
 			plt.scatter(xvals, yvals)
-			plt.show()
-			
+
 
 			itr = itr + 1
 			sums = sums + nTimes
-		#plt.show() 
+		plt.show() 
 		bezierpoints.append(temp)
 	
 	return bezierpoints
-	
 
 
 def extract_features_Segmentation(root):
@@ -353,28 +455,28 @@ def extract_features_Segmentation(root):
 
 	indices, labels = getstrokepairs(indices)
 	
-	print indices
+	#print indices
 
-	#xcor,ycor = shiftPoints(indices,xcor,ycor)
+	xcor,ycor = shiftPoints_SegmentStrokes(indices,xcor,ycor)
 	xcor,ycor = normalizedPoints_SegmentStrokes(indices,xcor,ycor)
-	bezierpoints = getBezier(indices,xcor,ycor)
+	xcor,ycor = getBezier_SegmentationStrokes(indices,xcor,ycor)
 
-	features = []
+	# features = []
 	
 	
-	for sym, j in zip(labels, range(len(labels))):
+	# for sym, j in zip(labels, range(len(labels))):
 		
-		feature = []
+	# 	feature = []
 
-		for x in bezierpoints[j]:
-			for xp in x:
-				feature.append(xp[0])
+	# 	for x in bezierpoints[j]:
+	# 		for xp in x:
+	# 			feature.append(xp[0])
 
-		for x in bezierpoints[j]:
-			for xp in x:
-				feature.append(xp[1])
+	# 	for x in bezierpoints[j]:
+	# 		for xp in x:
+	# 			feature.append(xp[1])
 
-		features.append(feature)
+	# 	features.append(feature)
 		
 		
 	#print labels, indices
@@ -386,7 +488,7 @@ def extract_features_Segmentation(root):
 	# print " "
 
 
-	return features, labels
+	return #features, labels
 
 def getstrokepairs(indices):
 
@@ -406,8 +508,6 @@ def getstrokepairs(indices):
 		strokepairs[tuple([i,i+1])] = 0 
 		sp.append([i,i+1])
 		labels.append(0)
-		
-	
 
 	
 	for x in indices:
@@ -434,6 +534,7 @@ def extract_features(root):
 
 	xcor,ycor = getxycor(root) 
 	symbol, indices = getSymbolIndices(root)
+	print indices
 	xcor,ycor = shiftPoints(indices,xcor,ycor)
 	xcor,ycor = normalizedPoints(indices,xcor,ycor)
 	bezierpoints = getBezier(indices,xcor,ycor)
@@ -499,73 +600,73 @@ def distance(a,b):
 
 	return sum([(a[i]-b[i])**2 for i in range(len(a))])**0.5
 
-def boundingbox(xcor, ycor):
+# def boundingbox(xcor, ycor):
 
-	vertices = []
-	for ind in range(len(xcor)):
-		x = xcor[ind]
-		y = ycor[ind]
-		vertices.append(Vertex(ind))
-		vertices[ind].center = getCenter(x,y)
-		bbx,bby = getBoundingBox(x,y)
-		#plt.plot(x,y)
-		#plt.scatter(vertices[ind].center[0],vertices[ind].center[1])
+# 	vertices = []
+# 	for ind in range(len(xcor)):
+# 		x = xcor[ind]
+# 		y = ycor[ind]
+# 		vertices.append(Vertex(ind))
+# 		vertices[ind].center = getCenter(x,y)
+# 		bbx,bby = getBoundingBox(x,y)
+# 		#plt.plot(x,y)
+# 		#plt.scatter(vertices[ind].center[0],vertices[ind].center[1])
 
-	for v in range(len(xcor)):
-		temp = []
-		for i in range(len(xcor)):
-			temp.append(None)
-		graph.append(temp)
+# 	for v in range(len(xcor)):
+# 		temp = []
+# 		for i in range(len(xcor)):
+# 			temp.append(None)
+# 		graph.append(temp)
 
-	for ind in range(len(xcor)):
+# 	for ind in range(len(xcor)):
 
-		for ind2 in range(len(xcor)):
-		 	if ind2 != ind:
-		 		dist = distance(vertices[ind].center,vertices[ind2].center)
-		 		vertices[ind].adjacent.append([vertices[ind2],dist])
-		 		# #connect(vertices[ind], vertices[ind2], dist)
-		 		graph[ind][ind2] = dist
+# 		for ind2 in range(len(xcor)):
+# 		 	if ind2 != ind:
+# 		 		dist = distance(vertices[ind].center,vertices[ind2].center)
+# 		 		vertices[ind].adjacent.append([vertices[ind2],dist])
+# 		 		# #connect(vertices[ind], vertices[ind2], dist)
+# 		 		graph[ind][ind2] = dist
 	
 	
-	mst = prims(vertices)
+# 	mst = prims(vertices)
 
-	for x in mst:
-		print x 
+# 	for x in mst:
+# 		print x 
 
-	print len(mst)
+# 	print len(mst)
 
-	pltx = []
-	plty = []
+# 	pltx = []
+# 	plty = []
 
-	for v in mst:
+# 	for v in mst:
 
-		v1 = v[0]
-		v2 = v[1]
+# 		v1 = v[0]
+# 		v2 = v[1]
 		
-		pltx.append(v1.center[0])
-		plty.append(v1.center[1])
+# 		pltx.append(v1.center[0])
+# 		plty.append(v1.center[1])
 
-		pltx.append(v2.center[0])
-		plty.append(v2.center[1])
+# 		pltx.append(v2.center[0])
+# 		plty.append(v2.center[1])
 
-	# for v in mst:
+# 	# for v in mst:
 
-	# 	v1 = v[0]
-	# 	v2 = v[1]
+# 	# 	v1 = v[0]
+# 	# 	v2 = v[1]
 		
-	# 	pltx.append(vertices[v1].center[0])
-	# 	plty.append(vertices[v1].center[1])
+# 	# 	pltx.append(vertices[v1].center[0])
+# 	# 	plty.append(vertices[v1].center[1])
 
-	# 	pltx.append(vertices[v2].center[0])
-	# 	plty.append(vertices[v2].center[1])
-
-
-	#plt.plot(pltx,plty)
+# 	# 	pltx.append(vertices[v2].center[0])
+# 	# 	plty.append(vertices[v2].center[1])
 
 
-	#plt.show()
+# 	#plt.plot(pltx,plty)
 
-	return bbx,bby
+
+# 	#plt.show()
+
+# 	return bbx,bby
 
 
 
