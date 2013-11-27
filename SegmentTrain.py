@@ -560,7 +560,10 @@ def calculate_writing_curvature(x, y):
 	first_vector_magnitude = math.sqrt(first_stroke_vector[0]**2 + first_stroke_vector[1]**2)
 	second_vector_magnitude = math.sqrt(second_stroke_vector[0]**2 + second_stroke_vector[1]**2)
 	
-	cosTheta = dotProd/(first_vector_magnitude*second_vector_magnitude)
+	denom = (first_vector_magnitude*second_vector_magnitude)
+	if denom == 0:
+		denom = 0.001
+	cosTheta = dotProd/denom
 	
 	#cosTheta should be in range [-1, 1]
 	if(cosTheta >= 1.0):
@@ -568,6 +571,7 @@ def calculate_writing_curvature(x, y):
 	elif(cosTheta <= -1.0):
 		cosTheta = -0.9999
 	theta = math.acos(cosTheta)
+	
 	
 	return theta
 
