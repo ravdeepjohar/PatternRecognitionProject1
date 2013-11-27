@@ -104,7 +104,7 @@ def main():
 	#line = fTest.readline()
 	
 	#tree = ET.parse(line[:-1].strip())
-	tree = ET.parse("expressmatch/106_david.inkml")
+	tree = ET.parse("expressmatch/65_alfonso.inkml")
 	
 	root = tree.getroot() 
 	#tempx,tempy = extract_features(root)

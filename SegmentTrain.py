@@ -83,21 +83,23 @@ def main():
 	
 	fTrain = open("train.txt", 'rb')
 	os.chdir("TrainINKML_v3")
-	for line in fTrain:
-		tree = ET.parse(line[:-1].strip())
-		root = tree.getroot() 
-		#tempx,tempy = extract_features(root)
-		tempx2,tempy2 = extract_features_Segmentation(root)
-		tempx,tempy = extract_features(root)
+	#for line in fTrain:
+	line = fTrain.readline()
+	tree = ET.parse(line[:-1].strip())
+	tree = ET.parse("expressmatch/65_alfonso.inkml")
+	root = tree.getroot() 
+	#tempx,tempy = extract_features(root)
+	tempx2,tempy2 = extract_features_Segmentation(root)
+	#tempx,tempy = extract_features(root)
 
-		for tx,ty in zip(tempx,tempy):
-			X.append(tx)
-			y.append(ty)
-			
-		for tx,ty in zip(tempx2,tempy2):
-			X2.append(tx)
-			y2.append(ty)
-			
+	#for tx,ty in zip(tempx,tempy):
+		#X.append(tx)
+		#y.append(ty)
+		
+	#for tx,ty in zip(tempx2,tempy2):
+		#X2.append(tx)
+		#y2.append(ty)
+	'''		
 	csvTrain = open('TrainDataX.csv', 'wb')
 	for i in range(len(X)):
 		c = csv.writer(csvTrain)
@@ -140,12 +142,12 @@ def main():
 	
 	symbolSVMFile.close()
 	segmentSVMFile.close()
-	
+	'''
 	
 	
 	
 
-def shiftPoints(symbols,indices,xcor,ycor):
+def shiftPoints(indices,xcor,ycor):
 	
 	for sym in range(len(indices)):
 		newx = []
@@ -175,16 +177,16 @@ def shiftPoints(symbols,indices,xcor,ycor):
 				testx.append(xp)
 				testy.append(yp)
 
-		# plt.figure()
-		# plt.scatter(testx,testy)
-		# plt.show()
+		#plt.figure()
+		#plt.scatter(testx,testy)
+		#plt.show()
 
 	return xcor,ycor
 
 	
 
 	
-def normalizedPoints(symbols,indices,xcor,ycor):
+def normalizedPoints(indices,xcor,ycor):
 
 	for sym in range(len(indices)):
 		newx = []
@@ -226,9 +228,58 @@ def normalizedPoints(symbols,indices,xcor,ycor):
 				testx.append(xp)
 				testy.append(yp)
 
-		# plt.figure()
-		# plt.scatter(testx,testy)
-		# plt.show()
+		#plt.figure()
+		#plt.plot(testx,testy)
+		#plt.show()
+
+	return xcor,ycor
+	
+def normalizedPoints_SegmentStrokes(indices,xcor,ycor):
+
+	for sym in range(len(indices)):
+		#newx = []
+		#newy = []
+
+		#for x in indices[sym]:
+			#for xp, yp in zip(xcor[x],ycor[x]):
+				#newx.append(xp)
+				#newy.append(yp)
+		newx = xcor[sym]
+		newy = ycor[sym]
+		xmin,ymin,xmax,ymax = getMinMax(newx,newy)
+		
+		testx = []
+		testy = []
+		
+		for x in indices[sym]:
+
+			tempy = ycor[x]
+
+			if (ymax-ymin) == 0 :
+				tempy[:] = [ 0 for y in tempy]
+			else:
+				tempy[:] = [ ((y - ymin) / (ymax-ymin)) for y in tempy]
+
+			ycor[x] = tempy
+
+
+			tempx = xcor[x]
+
+			if (xmax-xmin) == 0:
+				tempx = [ 0 for xp in tempx]
+			else:
+				tempx[:] = [((xp- xmin) / (xmax-xmin))  for xp in tempx]
+
+			xcor[x] = tempx
+
+			
+			for xp, yp in zip(xcor[x],ycor[x]):
+				testx.append(xp)
+				testy.append(yp)
+
+		#plt.figure()
+		#plt.scatter(testx,testy)
+		#plt.show()
 
 	return xcor,ycor
 
@@ -238,9 +289,9 @@ def bernstein_poly(i, n, t):
 		"""
 		return comb(n, i) * ( t**(n-i) ) * (1 - t)**i
 
-def getBezier(symbols,indices,xcor,ycor):
+def getBezier(indices,xcor,ycor):
 	bezierpoints = []
-	totalPoints = 34
+	totalPoints = 5
 	# create points for symbols using bezier 
 	
 	for sym in range(len(indices)):
@@ -278,8 +329,10 @@ def getBezier(symbols,indices,xcor,ycor):
 				cor.append([x,y])        
 			
 			temp.append(cor)
-		   
-			#plt.plot(xvals, yvals)
+			plt.figure()
+			plt.scatter(xvals, yvals)
+			plt.show()
+			
 
 			itr = itr + 1
 			sums = sums + nTimes
@@ -287,27 +340,30 @@ def getBezier(symbols,indices,xcor,ycor):
 		bezierpoints.append(temp)
 	
 	return bezierpoints
+	
+
 
 def extract_features_Segmentation(root):
 
 	xcor,ycor = getxycor(root) 
 	symbol, indices = getSymbolIndices(root)
 
-	# for x,y in zip(symbol,indices):
-	# 	print x, y 
+	#for x,y in zip(symbol,indices):
+		#print x, y 
 
 	indices, labels = getstrokepairs(indices)
+	
+	print indices
 
-
-	xcor,ycor = shiftPoints(symbol,indices,xcor,ycor)
-	xcor,ycor = normalizedPoints(symbol,indices,xcor,ycor)
-	bezierpoints = getBezier(symbol,indices,xcor,ycor)
+	#xcor,ycor = shiftPoints(indices,xcor,ycor)
+	xcor,ycor = normalizedPoints_SegmentStrokes(indices,xcor,ycor)
+	bezierpoints = getBezier(indices,xcor,ycor)
 
 	features = []
 	
-
+	
 	for sym, j in zip(labels, range(len(labels))):
-
+		
 		feature = []
 
 		for x in bezierpoints[j]:
@@ -319,6 +375,7 @@ def extract_features_Segmentation(root):
 				feature.append(xp[1])
 
 		features.append(feature)
+		
 		
 	#print labels, indices
 
@@ -333,31 +390,42 @@ def extract_features_Segmentation(root):
 
 def getstrokepairs(indices):
 
+	#print indices
 	numberofstrokes = 0
 
 	for x in indices:
 		numberofstrokes += len(x)
 
 	strokepairs = dict()
+	sp = []
+	labels = []
+	
 
 	for i in range(numberofstrokes-1):
 
 		strokepairs[tuple([i,i+1])] = 0 
+		sp.append([i,i+1])
+		labels.append(0)
+		
+	
 
 	
 	for x in indices:
 		if(len(x)>1):
 			for p in range(len(x)-1):
-				strokepairs[tuple([x[p],x[p+1]])] = 1
-
-	newindices = []
+				for l in range(len(sp)):
+					if([x[p],x[p+1]]==sp[l]):
+						 labels[l]= 1
+	#print labels
+	#print sp
+	'''newindices = []
 	newsymbols = []
 	for x in strokepairs:
 		newindices.append(list(x))
-		newsymbols.append(strokepairs[x])
+		newsymbols.append(strokepairs[x])'''
 
 
-	return newindices , newsymbols
+	return sp,labels
 
 
 
@@ -366,9 +434,9 @@ def extract_features(root):
 
 	xcor,ycor = getxycor(root) 
 	symbol, indices = getSymbolIndices(root)
-	xcor,ycor = shiftPoints(symbol,indices,xcor,ycor)
-	xcor,ycor = normalizedPoints(symbol,indices,xcor,ycor)
-	bezierpoints = getBezier(symbol,indices,xcor,ycor)
+	xcor,ycor = shiftPoints(indices,xcor,ycor)
+	xcor,ycor = normalizedPoints(indices,xcor,ycor)
+	bezierpoints = getBezier(indices,xcor,ycor)
 
 	features = []
 	labels = []
