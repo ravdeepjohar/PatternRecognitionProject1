@@ -89,54 +89,65 @@ def main():
 	segmentSVM = svm.SVC()
 	segmentSVM = segmentSVM.fit(segmentTrainFeaturesX, segmentTrainFeaturesY)
 	'''
-	symbolSVMFile = 	open('symbolSVM', 'rb')
+	# symbolSVMFile = 	open('symbolSVM', 'rb')
 	segmentSVMFile = open('segmentSVM', 'rb')
 	
 			
 	segmentSVM = pickle.load(segmentSVMFile)
-	symbolSVM = pickle.load(symbolSVMFile)
+	#symbolSVM = pickle.load(symbolSVMFile)
 	
-	symbolSVMFile.close()
+	#symbolSVMFile.close()
 	segmentSVMFile.close()
 							
-	
+	yes, no = 0.0, 0.0 
 	
 	#line = fTest.readline()
-	
-	#tree = ET.parse(line[:-1].strip())
-	tree = ET.parse("expressmatch/65_alfonso.inkml")
-	
-	root = tree.getroot() 
-	#tempx,tempy = extract_features(root)
-	tempx2,labels = extract_features_Segmentation(root)
-	
-	
-	#print indices2
-	predictedlabels = []
-	
+	for line in fTest:
+		tree = ET.parse(line[:-1].strip())
+		#tree = ET.parse("expressmatch/101_alfonso.inkml")
+		
+		root = tree.getroot() 
+		#tempx,tempy = extract_features(root)
+		tempx2,labels = extract_features_Segmentation(root)
+		
+		
+		#print indices2
+		predictedlabels = []
+		
+		#print labels
+		for tx,ty in zip(tempx2,labels):		
+			predictedlabels.append(segmentSVM.predict(tx)[0])
+		
+		#print predictedlabels
 
-	for tx,ty in zip(tempx2,labels):		
-		predictedlabels.append(segmentSVM.predict(tx)[0])
-	
-	print predictedlabels
+		for l1, l2 in zip(labels, predictedlabels):
+			if (l1 == l2):
+				yes += 1
+
+			else:
+
+				no += 1
+
+
+			
+		symbolindices = getSymbolsPairs(predictedlabels)
 		
-	symbolindices = getSymbolsPairs(predictedlabels)
-	
-	print symbolindices
+		#print symbolindices
+			
+		# tempx, indices = test_extract_features(root,symbolindices)
 		
-	tempx, indices = test_extract_features(root,symbolindices)
-	
-	print len(tempx)
-	classifiedSymbols = []	
-	
-	for tx in tempx:
+		# print len(tempx)
+		# classifiedSymbols = []	
 		
-		#predictedlabels.append(symbolSVM.predict(tx)[0])
-		classifiedSymbols.append(symbolSVM.predict(tx)[0])
-		#print symbolSVM.predict(tx)[0]
-	print classifiedSymbols
-	
-	generate_lg_file(classifiedSymbols, symbolindices)
+		# for tx in tempx:
+			
+		# 	#predictedlabels.append(symbolSVM.predict(tx)[0])
+		# 	classifiedSymbols.append(symbolSVM.predict(tx)[0])
+		# 	#print symbolSVM.predict(tx)[0]
+		# print classifiedSymbols
+		
+		# generate_lg_file(classifiedSymbols, symbolindices)
+	print "Accuracy:" + str((yes/float(yes+no)*100))
 	fTest.close()
 	
 def generate_lg_file(symbolList, indices):
@@ -383,7 +394,7 @@ def normalizedPoints(indices,xcor,ycor):
 
 	return xcor,ycor
 
-ef normalizedPoints_SegmentStrokes(indices,symbolpointsX,symbolpointsY):
+def normalizedPoints_SegmentStrokes(indices,symbolpointsX,symbolpointsY):
 
 	for x,y in zip(symbolpointsX, symbolpointsY):	
 
