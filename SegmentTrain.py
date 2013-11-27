@@ -342,7 +342,7 @@ def bernstein_poly(i, n, t):
 def getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY):
 	bezierpointsX = []
 	bezierpointsY = []
-	totalPoints = 50
+	totalPoints = 34
 	# create points for symbols using bezier 
 
 	for x,y in zip(symbolpointsX, symbolpointsY):	
@@ -382,19 +382,19 @@ def getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY):
 		bezierpointsY.append(templistY)
 
 
-	for x,y in zip(bezierpointsX, bezierpointsY):		
+	'''for x,y in zip(bezierpointsX, bezierpointsY):		
 		plt.figure()
 		for x1,y1 in zip(x,y):
 			plt.scatter(x1,y1)
 			
-		plt.show()	
+		plt.show()'''
 	
-	return symbolpointsX,symbolpointsY
+	return bezierpointsX,bezierpointsY
 	
 
 def getBezier(indices,xcor,ycor):
 	bezierpoints = []
-	totalPoints = 50
+	totalPoints = 34
 	# create points for symbols using bezier 
 	
 	for sym in range(len(indices)):
@@ -443,6 +443,147 @@ def getBezier(indices,xcor,ycor):
 		bezierpoints.append(temp)
 	
 	return bezierpoints
+	
+def calculate_bounding_box_distance(x, y):
+	centers = []
+	for x1, y1 in zip(x, y):
+		
+		centers.append(getCenter(x1, y1))
+		
+	'''plt.figure()
+	for x1,y1 in zip(x,y):
+		plt.scatter(x1,y1)
+		bla1,bla2 = getCenter(x1, y1)
+		plt.scatter(bla1,bla2, color = 'r')
+			
+	plt.show()'''
+	d = distance(centers[0], centers[1])
+	
+	return d
+	
+def calculate_average_center_distance(x, y):
+	centers = []
+	for x1, y1 in zip(x, y):
+		
+		centers.append(average(x1, y1))
+				
+
+	d = distance(centers[0], centers[1])
+	
+	return d
+
+def calculate_max_distance(x, y):
+	maxDistance = -1.0
+	for x1, y1 in zip(x[0], y[0]):
+		for x2, y2 in zip(x[1], y[1]):
+			d = distance([x1, y1], [x2, y2])
+			if d > maxDistance:
+				maxDistance = d	
+	return maxDistance
+
+
+def calculate_two_stroke_distance(x, y):
+	first_stroke_end_x = x[0][len(x[0]) - 1]
+	first_stroke_end_y = x[0][len(x[0]) - 1]
+	second_stroke_start_x = x[1][0]
+	second_stroke_start_y = y[1][0]
+	
+	
+	'''plt.figure()
+	for x1,y1 in zip(x,y):
+		plt.scatter(x1,y1)
+		bla1,bla2 = getCenter(x1, y1)
+		plt.scatter(first_stroke_end_x,first_stroke_end_y, color = 'r')
+		plt.scatter(second_stroke_start_x, second_stroke_start_y, color = 'r')
+			
+	plt.show()'''
+	
+	offset = second_stroke_start_x - first_stroke_end_x
+	return offset
+
+def calculate_bounding_box_vertical_distance(x, y):
+	centers = []
+	for x1, y1 in zip(x, y):
+		
+		centers.append(getCenter(x1, y1))
+		
+	'''plt.figure()
+	for x1,y1 in zip(x,y):
+		plt.scatter(x1,y1)
+		bla1,bla2 = getCenter(x1, y1)
+		plt.scatter(bla1,bla2, color = 'r')
+			
+	plt.show()'''
+	d = centers[1][1] - centers[0][1]
+	
+	return d
+	
+def calculate_writing_slope(x, y):
+	first_stroke_end_x = x[0][len(x[0]) - 1]
+	first_stroke_end_y = x[0][len(x[0]) - 1]
+	second_stroke_start_x = x[1][0]
+	second_stroke_start_y = y[1][0]
+	
+	vector = [second_stroke_start_x - first_stroke_end_x, second_stroke_start_y-first_stroke_end_y]
+	horizontal = [1.0, 0.0]
+	
+	dotProd = vector[0] * horizontal[0] + vector[1] * horizontal[1]
+	magHorizontal = math.sqrt(horizontal[0]**2 + horizontal[1]**2)
+	magVector = math.sqrt(vector[0]**2 + vector[1]**2)
+	
+	cosTheta = dotProd/(magHorizontal*magVector)
+	theta = math.acos(cosTheta)
+	
+	'''plt.figure()
+	for x1,y1 in zip(x,y):
+		plt.scatter(x1,y1)
+		bla1,bla2 = getCenter(x1, y1)
+		plt.scatter(first_stroke_end_x,first_stroke_end_y, color = 'r')
+		plt.scatter(second_stroke_start_x, second_stroke_start_y, color = 'r')
+			
+	plt.show()'''
+	
+	return theta
+	
+def calculate_writing_curvature(x, y):
+	first_stroke_start_x = x[0][0]
+	first_stroke_start_y = y[0][0]
+	first_stroke_end_x = x[0][len(x[0]) - 1]
+	first_stroke_end_y = x[0][len(x[0]) - 1]
+	second_stroke_start_x = x[1][0]
+	second_stroke_start_y = y[1][0]
+	second_stroke_end_x = x[1][len(x[1]) - 1]
+	second_stroke_end_y = y[1][len(y[1]) - 1]
+	
+	first_stroke_vector = [first_stroke_end_x - first_stroke_start_x, first_stroke_end_y - first_stroke_start_y]
+	second_stroke_vector = [second_stroke_end_x - second_stroke_start_x, second_stroke_end_y - second_stroke_start_y]
+	
+	dotProd = first_stroke_vector[0] * second_stroke_vector[0] + first_stroke_vector[1] * second_stroke_vector[1]
+	first_vector_magnitude = math.sqrt(first_stroke_vector[0]**2 + first_stroke_vector[1]**2)
+	second_vector_magnitude = math.sqrt(second_stroke_vector[0]**2 + second_stroke_vector[1]**2)
+	
+	cosTheta = dotProd/(first_vector_magnitude*second_vector_magnitude)
+	
+	#cosTheta should be in range [-1, 1]
+	if(cosTheta >= 1.0):
+		cosTheta = 0.9999
+	elif(cosTheta <= -1.0):
+		cosTheta = -0.9999
+	theta = math.acos(cosTheta)
+	
+	return theta
+
+def calculate_bounding_box_size_difference(x, y):
+	sizes = []
+	for x1, y1 in zip(x, y):
+		boundinBoxX, boundingBoxY = getBoundingBox(x1, y1)
+		width = distance([boundinBoxX[0], boundingBoxY[0]], [boundinBoxX[1], boundingBoxY[1]])
+		height = distance([boundinBoxX[1], boundingBoxY[1]], [boundinBoxX[2], boundingBoxY[2]])
+		sizes.append(width*height)
+	
+	diff = sizes[1] - sizes[0]
+	return diff
+
 
 
 def extract_features_Segmentation(root):
@@ -460,7 +601,7 @@ def extract_features_Segmentation(root):
 	xcor,ycor = shiftPoints_SegmentStrokes(indices,xcor,ycor)
 	xcor,ycor = normalizedPoints_SegmentStrokes(indices,xcor,ycor)
 	xcor,ycor = getBezier_SegmentationStrokes(indices,xcor,ycor)
-
+	
 	# features = []
 	
 	
@@ -486,7 +627,16 @@ def extract_features_Segmentation(root):
 	# 	print " "
 
 	# print " "
-
+	
+	for x, y in zip(xcor, ycor):
+		#print calculate_bounding_box_distance(x, y)
+		#print calculate_average_center_distance(x,y)
+		#print calculate_max_distance(x, y)
+		#print calculate_two_stroke_distance(x, y)
+		#print calculate_bounding_box_vertical_distance(x, y)
+		#print calculate_writing_slope(x, y)
+		#print calculate_writing_curvature(x, y)
+		#print calculate_bounding_box_size_difference(x, y)
 
 	return #features, labels
 
@@ -598,7 +748,13 @@ def getCenter(x,y):
 def distance(a,b):
 
 	return sum([(a[i]-b[i])**2 for i in range(len(a))])**0.5
+	# sqrt((x2 - x1) ^ 2 + (y2 - y1) ^ 2)
+	
+def average(x,y):
+	
+	return sum(x1 for x1 in x)/len(x), sum(y1 for y1 in y)/len(y)
 
+	
 # def boundingbox(xcor, ycor):
 
 # 	vertices = []
