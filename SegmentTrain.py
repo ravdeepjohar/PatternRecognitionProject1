@@ -76,7 +76,7 @@ def main():
 	fTrain = open("train.txt", 'rb')
 	os.chdir("TrainINKML_v3")
 	for line in fTrain:
-		line = fTrain.readline()
+		#line = fTrain.readline()
 		tree = ET.parse(line[:-1].strip())
 		#tree = ET.parse("expressmatch/65_alfonso.inkml")
 		root = tree.getroot() 
@@ -529,7 +529,10 @@ def calculate_writing_slope(x, y):
 	magHorizontal = math.sqrt(horizontal[0]**2 + horizontal[1]**2)
 	magVector = math.sqrt(vector[0]**2 + vector[1]**2)
 	
-	cosTheta = dotProd/(magHorizontal*magVector)
+	denom = (magHorizontal*magVector)
+	if denom == 0:
+		denom = 0.001
+	cosTheta = dotProd/denom
 	theta = math.acos(cosTheta)
 	
 	'''plt.figure()
