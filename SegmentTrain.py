@@ -80,61 +80,38 @@ def main():
 		tree = ET.parse(line[:-1].strip())
 		#tree = ET.parse("expressmatch/65_alfonso.inkml")
 		root = tree.getroot() 
-		#tempx,tempy = extract_features(root)
-		tempx2,tempy2 = extract_features_Segmentation(root)
+		tempx,tempy = extract_features(root)
+		#tempx2,tempy2 = extract_features_Segmentation(root)
 		#tempx,tempy = extract_features(root)
 
-	#for tx,ty in zip(tempx,tempy):
-		#X.append(tx)
-		#y.append(ty)
-		
-		for tx,ty in zip(tempx2,tempy2):
-			X2.append(tx)
-			y2.append(ty)
+		for tx,ty in zip(tempx,tempy):
+			X.append(tx)
+			y.append(ty)
 
+
+		# for b1 , b2 in zip(X,y):
+		# 	print b1,b2
 		
-	# csvTrain = open('TrainDataX.csv', 'wb')
-	# for i in range(len(X)):
-	# 	c = csv.writer(csvTrain)
-	# 	c.writerow(X[i])
+		
+		# for tx,ty in zip(tempx2,tempy2):
+		# 	X2.append(tx)
+		# 	y2.append(ty)
+
 	
-	# csvTrain.close()
+	symbolSVM = svm.SVC()
+	symbolSVM = symbolSVM.fit(X, y)
 	
-	# csvTrain = open('TrainDataY.csv', 'wb')
-	# for i in range(len(y)):
-	# 	c = csv.writer(csvTrain)
-	# 	c.writerow([y[i]])
+	# segmentSVM = svm.SVC()
+	# segmentSVM = segmentSVM.fit(X2, y2)
 	
-	# csvTrain.close()
+	symbolSVMFile = open('symbolSVM', 'wb')
+	# segmentSVMFile = open('segmentSVM', 'wb')
 	
-	# csvTrain = open('SegmentTrainDataX.csv', 'wb')
-	# for i in range(len(X2)):
-	# 	c = csv.writer(csvTrain)
-	# 	c.writerow(X2[i])
+	pickle.dump(symbolSVM, symbolSVMFile)
+	#pickle.dump(segmentSVM, segmentSVMFile)
 	
-	# csvTrain.close()
-	
-	# csvTrain = open('SegmentTrainDataY.csv', 'wb')
-	# for i in range(len(y2)):
-	# 	c = csv.writer(csvTrain)
-	# 	c.writerow([y2[i]])
-	
-	# csvTrain.close()
-	
-	# symbolSVM = svm.SVC()
-	# symbolSVM = symbolSVM.fit(X, y)
-	
-	segmentSVM = svm.SVC()
-	segmentSVM = segmentSVM.fit(X2, y2)
-	
-	#symbolSVMFile = open('symbolSVM', 'wb')
-	segmentSVMFile = open('segmentSVM', 'wb')
-	
-	#pickle.dump(symbolSVM, symbolSVMFile)
-	pickle.dump(segmentSVM, segmentSVMFile)
-	
-	#symbolSVMFile.close()
-	segmentSVMFile.close()
+	symbolSVMFile.close()
+	#segmentSVMFile.close()
 	
 	
 
@@ -665,18 +642,167 @@ def getstrokepairs(indices):
 	return sp,labels
 
 
+def calculate_aspect_ratios(bezierpoints):
+	aspect_ratio = []
+		
+	for i in range(len(bezierpoints)):
+		max_width = 0.0
+		max_height = 0.0
+		min_width = 0.0
+		min_height = 0.0
+		
+		for j in range(len(bezierpoints[i])):
+			for coord in bezierpoints[i][j]:
+				if(max_width == 0.0):
+					max_width = coord[0]
+				elif(max_width < coord[0]):
+					max_width = coord[0]
+				
+				if(max_height == 0.0):
+					max_height = coord[1]
+				elif(max_height < coord[1]):
+					max_height = coord[1]
+				
+				if(min_width == 0.0):
+					min_width = coord[0]
+				elif(min_width > coord[0]):
+					min_width = coord[0]
+				
+				if(min_height == 0.0):
+					min_height = coord[1]
+				elif(min_height > coord[1]):
+					min_height = coord[1]
+		
+		if(max_height - min_height > 0):
+			aspect = (max_width - min_width)/(max_height - min_height)
+		else:
+			aspect = (max_width - min_width)
+		aspect_ratio.append(aspect)
+	return aspect_ratio
 
+def calculate_covariance(bezierpoints):
+	covariance = []
+	for i in range(len(bezierpoints)):
+		tempYList = []
+		tempXList = []
+		for j in range(len(bezierpoints[i])):
+			for coord in bezierpoints[i][j]:
+				tempXList.append(coord[0])
+				tempYList.append(coord[1])
+		mat = []
+		xMean = 0.0
+		yMean = 0.0
+		for j in range(len(tempXList)):
+			xMean = tempXList[j]
+			yMean = tempYList[j]
+			mat.append([tempXList[j], tempYList[j]])
+		
+		xMean = xMean / len(tempXList)
+		yMean = yMean / len(tempYList)
+		
+		mat = np.matrix(mat)
+		mean = np.matrix([xMean, yMean])
+		
+		covarianceMatrix = np.matrix([[0.0, 0.0], [0.0, 0.0]])
+		
+		covarianceMatrix = (mat[0] - mean).T * (mat[0] - mean)
+		for k in range(len(mat)):
+			covarianceMatrix = covarianceMatrix + (mat[k] - mean).T * (mat[k] - mean)
+		
+		covariance.append(covarianceMatrix)
+	return covariance
+	
+def calculate_vicinity_slope(bezierpoints):
+	
+	vicinity_slope = []
+	
+	for i in range(len(bezierpoints)):
+		tempList = []
+		for j in range(len(bezierpoints[i])):
+			for coord in bezierpoints[i][j]:
+				tempList.append(coord)
+		sumTheta = 0.0
+		for k in range(3, len(tempList)-3):
+			horizontal = [1.0, 0.0]
+			vec = [tempList[k+3][0] - tempList[k-3][0], tempList[k+3][1] - tempList[k-3][1]]
+			magHorizonal = np.sqrt(horizontal[0] * horizontal[0] + horizontal[1] * horizontal[1])
+			magVec = np.sqrt(vec[0] * vec[0] + vec[1] * vec[1])
+			
+			denom = (magVec * magHorizonal)
+			if denom <= 0:
+				denom = 0.0001
+			cosTheta = (horizontal[0] * vec[0] + horizontal[1] * vec[1])/denom
+			
+			if(cosTheta >= 1.0):
+				cosTheta = 0.999
+			if(cosTheta <= -1.0):
+				cosTheta = -0.999
+			
+			theta = math.acos(cosTheta)
+			sumTheta += theta
+		
+		vicinity_slope.append(sumTheta)
+	return vicinity_slope
+	
+def calculate_curvature(bezierpoints):
+	curvature = []
+	
+	for i in range(len(bezierpoints)):
+		tempList = []
+		for j in range(len(bezierpoints[i])):
+			for coord in bezierpoints[i][j]:
+				tempList.append(coord)
+		sumTheta = 0.0
+		for k in range(3, len(tempList) - 3):
+			vec1 = [tempList[k-3][0] - tempList[k][0], tempList[k-3][1] - tempList[k][1]]
+			mag1 = np.sqrt(vec1[0] * vec1[0] + vec1[1] * vec1[1])
+			vec2 = [tempList[k][0] - tempList[k+3][0], tempList[k][1] - tempList[k+3][1]]
+			mag2 = np.sqrt(vec2[0] * vec2[0] + vec2[1] * vec2[1])
+			
+
+			denom = (mag1 * mag2)
+			if denom <= 0:
+				denom = 0.0001
+			cosTheta = (vec1[0] * vec2[0] + vec1[1] * vec2[1])/denom
+			if(cosTheta >= 1.0):
+				cosTheta = 0.999
+			if(cosTheta <= -1.0):
+				cosTheta = -0.999
+				
+			
+			theta = math.acos(cosTheta)
+			sumTheta += theta
+			
+		
+		curvature.append(sumTheta)
+	return curvature
+
+def calculate_number_of_strokes(indices):
+	numStrokes = []
+	for i in range(len(indices)):
+		numStrokes.append(len(indices[i]))
+	return numStrokes
 
 def extract_features(root):
 
 	xcor,ycor = getxycor(root) 
 	symbol, indices = getSymbolIndices(root)
-	xcor,ycor = shiftPoints(indices,xcor,ycor)
-	xcor,ycor = normalizedPoints(indices,xcor,ycor)
-	bezierpoints = getBezier(indices,xcor,ycor)
-
+	shiftedxcor,shiftedycor = shiftPoints(indices,xcor,ycor)
+	normalizedxcor,normalizedycor = normalizedPoints(indices,shiftedxcor,shiftedycor)
+	bezierpoints = getBezier(indices,normalizedxcor,normalizedycor)
+	
+	
 	features = []
 	labels = []
+	
+	#symbol features
+	
+	aspect_ratios = calculate_aspect_ratios(bezierpoints)
+	covariance = calculate_covariance(bezierpoints)
+	vicinity_slope = calculate_vicinity_slope(bezierpoints)
+	curvature = calculate_curvature(bezierpoints)
+	numStrokes = calculate_number_of_strokes(indices)
+	
 
 	for sym, j in zip(symbol, range(len(symbol))):
 
@@ -690,11 +816,24 @@ def extract_features(root):
 			for xp in x:
 				feature.append(xp[1])
 
+		feature.append(aspect_ratios[j])
+		feature.append(vicinity_slope[j])
+		feature.append(curvature[j])
+		feature.append(numStrokes[j])
+
+		tempCovList = covariance[j].reshape(-1).tolist()
+
+		for k in range(len(tempCovList[0])):
+			
+			feature.append(tempCovList[0][k])
+		
 		features.append(feature)
 		
 		labels.append(getLabel(sym))
 
 	return features, labels
+
+
 
 def getMinMax(x,y):
 	xmin = min(x)
