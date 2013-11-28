@@ -73,13 +73,15 @@ def main():
 
 	print "Start Feature extraction"
 	
-	fTrain = open("AllEM_part4_TRAIN_all", 'rb')
+	fTrain = open("AllEM_part4_TRAIN_all.txt", 'rb')
 	os.chdir("TrainINKML_v3")
 	for line in fTrain:
 		
 		tree = ET.parse(line[:-1].strip())
+		#tree = ET.parse("expressmatch/65_alfonso.inkml")
 		root = tree.getroot() 
 		tempx,tempy = extract_features(root)
+		tempx2,tempy2 = extract_features_Segmentation(root)
 		
 
 		for tx,ty in zip(tempx,tempy):
