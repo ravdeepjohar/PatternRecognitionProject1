@@ -88,11 +88,7 @@ def main():
 			X.append(tx)
 			y.append(ty)
 
-
-		for b1 , b2 in zip(X,y):
-			print b1,b2
-		
-		
+	
 		for tx,ty in zip(tempx2,tempy2):
 			X2.append(tx)
 			y2.append(ty)
