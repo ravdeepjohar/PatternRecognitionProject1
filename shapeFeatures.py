@@ -5,10 +5,14 @@ from scipy.misc import comb
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+from pylab import *
 
 indexFile = open("index.csv")
 classDict = {}
 bezierpoints = []
+bezierpointsX,bezierpointsY = [], []
+numRadii = 15
+numTheta = 20
 
 for line in indexFile:
 	 classDict[line.split(",")[0]]= int((line.split(",")[1]).strip())
@@ -61,9 +65,9 @@ def getsymbolspairs(noofstrokes):
 	return strokepairs
 
 def createPoints():
-
+	global bezierpointsX,bezierpointsY
 	#inkmlfilelocation =  line[:-1].strip()
-	inkmlfilelocation = "TrainINKML_v3/expressmatch/101_alfonso.inkml"
+	inkmlfilelocation = "TrainINKML_v3/expressmatch/65_alfonso.inkml"
 	tree = ET.parse(inkmlfilelocation)
 	#tree = ET.parse('../expressmatch/79_edwin.inkml')
 	root = tree.getroot() 
@@ -71,7 +75,7 @@ def createPoints():
 	xcor,ycor = getxycor(root) 
 	symbol, indices = getSymbolIndices(root)
 
-
+   
 	#inkmlfilelocation = "TrainINKML_v3/expressmatch/65_alfonso.inkml"
 	inkmlfile = os.path.basename(inkmlfilelocation)
 
@@ -80,15 +84,18 @@ def createPoints():
 
 	relations = get_spatialRelations(lgfilepath)
 	symbolpairs = getsymbolspairs(len(symbol))
-
+ 
 
 	indices = sorted(indices, key=lambda x: x[0], reverse=False)
 
 	#print indices
 
 	#print symbolpairs
+	
+	
 
-	for sympair in symbolpairs:
+	for sympair in [symbolpairs[0]]:
+		
 
 		firstsymbol = sympair[0]
 		secondsymbol = sympair[1]
@@ -107,13 +114,13 @@ def createPoints():
 			symbolpointsX,symbolpointsY = shiftPoints_SegmentStrokes(ind,xcor,ycor)  
 
 			symbolpointsX,symbolpointsY = normalizedPoints_SegmentStrokes(ind,symbolpointsX,symbolpointsY)  
-			bezierpointsX,bezierpointsY = getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY)    
+			bezierpointsX, bezierpointsY = getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY)    
 
-		exit()
-
+			calculateShapeFeatures(bezierpointsX, bezierpointsY, numRadii, numTheta)
+   
 
 	
-				
+				  
 def normalizedPoints_SegmentStrokes(indices,symbolpointsX,symbolpointsY):
 
 	xmin,ymin = 999999, 999999
@@ -234,7 +241,7 @@ def shiftPoints_SegmentStrokes(indices,xcor,ycor):
 	#   for x1,y1 in zip(x,y):
 	#       plt.scatter(x1,y1)
 	# plt.show()
-
+	
 
 	return symbolpointsX,symbolpointsY    
 							
@@ -242,7 +249,7 @@ def shiftPoints_SegmentStrokes(indices,xcor,ycor):
 def calculateEuclidean(a, b):
 	return sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2)
 
-def calculateShapeFeatures(i, j, radialOffset, angleOffset):
+def calculateShapeFeatures(bezierPointsX, bezierPointsY, radialOffset, angleOffset):
 	centerOfMass1 = [0, 0]
 	centerOfMass2 = [0, 0]
 	center = [0, 0]
@@ -250,43 +257,121 @@ def calculateShapeFeatures(i, j, radialOffset, angleOffset):
 	maxPoint = [0, 0]
 	distance = 0.0
 	
-	for point1, point2 in zip(bezierpoints[i], bezierpoints[j]):
-		centerOfMass1 = [centerOfMass1[0] + point1[0], centerOfMass1[1] + point1[1]]
-		centerOfMass2 = [centerOfMass2[0] + point2[0], centerOfMass2[1] + point2[1]]
-	centerOfMass1 = [centerOfMass1[0] / len(bezierpoints[i]), centerOfMass1[1] / len(bezierpoints[i])]
-	centerOfMass2 = [centerOfMass2[0] / len(bezierpoints[j]), centerOfMass2[1] / len(bezierpoints[j])]
-	center = [(centerOfMass1[0] + centerOfMass2[0])/2, (centerOfMass1[1] + centerOfMass2[1])/2]
-		
-	for point1, point2 in zip(bezierpoints[i], bezierpoints[j]):
-		d = calculateEuclidean(center, point1)
+	bezierPointsX1 = []
+	bezierPointsX2 = []
+	bezierPointsY1 = []
+	bezierPointsY2 = []
+	
+	for i in bezierPointsX[0]:
+		bezierPointsX1 = bezierPointsX1 + i
+	for i in bezierPointsX[1]:
+		bezierPointsX2 = bezierPointsX2 + i
+	for i in bezierPointsY[0]:
+		bezierPointsY1 = bezierPointsY1 + i
+	for i in bezierPointsY[1]:
+		bezierPointsY2 = bezierPointsY2 + i
+	
+	
+	for x, y in zip(bezierPointsX1, bezierPointsY1):
+		centerOfMass1[0] += x
+		centerOfMass1[1] += y
+	
+	centerOfMass1[0] /= len(bezierPointsX1)
+	centerOfMass1[1] /= len(bezierPointsY1)
+	
+	for x, y in zip(bezierPointsX2, bezierPointsY2):
+		centerOfMass2[0] += x
+		centerOfMass2[1] += y
+	
+	centerOfMass2[0] /= len(bezierPointsX2)
+	centerOfMass2[1] /= len(bezierPointsY2)
+	
+	center[0] = (centerOfMass1[0] + centerOfMass2[0]) / 2
+	center[1] = (centerOfMass1[1] + centerOfMass2[1]) / 2
+	
+#	for i in range(len(bezierPointsX1)):
+#		bezierPointsX1[i] -= center[0]
+#	for i in range(len(bezierPointsX2)):
+#		bezierPointsX2[i] -= center[0]
+#	for i in range(len(bezierPointsY1)):
+#		bezierPointsY1[i] -= center[1]
+#	for i in range(len(bezierPointsY2)):
+#		bezierPointsY2[i] -= center[1]
+
+	for x1, y1, x2, y2 in zip(bezierPointsX1, bezierPointsY1, bezierPointsX2, bezierPointsY2):
+		d = calculateEuclidean(center, [x1, y1])
 		if d > distance:
 			distance = d
-			maxPoint = point1
+			maxPoint = [x1, y1]
 		
-		d = calculateEuclidean(center, point2)
+		d = calculateEuclidean(center, [x2, y2])
 		if d > distance:
-			distance
-			maxPoint = point2
-	print center
-	print distance
-	print maxPoint
+			distance = d
+			maxPoint = [x2, y2]
+		
 	
-	r = np.arange(0, distance, 0.01)
-	theta = 2 * np.pi * r
+	scatter(bezierPointsX1 + bezierPointsX2, bezierPointsY1 + bezierPointsY2)
+	scatter(centerOfMass1[0], centerOfMass1[1], color = 'red')
+	scatter(centerOfMass2[0], centerOfMass2[1], color = 'green')
+	scatter(center[0], center[1], color = 'black')
 	
-	ax = plt.subplot(111, polar=True)
-	#ax.plot(theta, r, color='r', linewidth=3)
-	ax.scatter(maxPoint[0], maxPoint[1])
-	ax.set_rmax(distance)
-	ax.grid(True)
+	radius = 0.0
+	nextRadius = 0.0
+	deltaRadius = distance/radialOffset
+	deltaTheta = (2 * np.pi) / angleOffset
 	
-	ax.set_title("A line plot on a polar axis", va='bottom')
-	plt.show()
+	grid = []	
 	
-
-
-
-
+	for i in range(radialOffset):
+		radius = nextRadius
+		nextRadius += deltaRadius
+		theta = 0.0
+		nextTheta = 0.0
+		row = []
+		xcor = []
+		ycor = []
+		for j in range(angleOffset):
+			theta = nextTheta
+			nextTheta += deltaTheta
+			numleftpoints = 0
+			numrightpoints = 0
+			xcor.append(nextRadius*cos(theta) + center[0])
+			ycor.append(nextRadius*sin(theta) + center[1])
+			for x, y in zip(bezierPointsX1, bezierPointsY1):
+				pdist = calculateEuclidean(center, [x, y])
+				ptheta = myAtan2(y, x)
+				if (pdist >= radius and pdist < nextRadius and ptheta >= theta and ptheta < nextTheta):
+					numleftpoints += 1
+					
+			for x, y in zip(bezierPointsX2, bezierPointsY2):
+				pdist = calculateEuclidean(center, [x, y])
+				ptheta = myAtan2(y, x)
+				if (pdist >= radius and pdist < nextRadius and ptheta >= theta and ptheta < nextTheta):
+					numrightpoints += 1
+			
+			if (numleftpoints > numrightpoints):
+				row.append(-1)
+			elif(numleftpoints == 0 and numrightpoints == 0):
+				row.append(0)
+			elif(numleftpoints <= numrightpoints):
+				row.append(1)
+		
+		xcor.append(nextRadius*cos(nextTheta) + center[0])
+		ycor.append(nextRadius*sin(nextTheta) + center[1])
+		plt.plot(xcor, ycor)
+		grid.append(row)
+	
+	print grid
+	
+				
+			
+#map results from arctan2 between 0 and 2*pi
+def myAtan2(y, x)	:
+	result = np.arctan2(y, x)
+	if result >= 0:
+		return result
+	else:
+		return 2*np.pi + result
 
 def getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY):
 	bezierpointsX = []
@@ -330,14 +415,13 @@ def getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY):
 		bezierpointsX.append(templistX)
 		bezierpointsY.append(templistY)
 
-	plt.figure()
-	for x,y in zip(bezierpointsX, bezierpointsY):        
-	   
-		for x1,y1 in zip(x,y):
-			plt.scatter(x1,y1)
-			
-	plt.show()
-	
+#	plt.figure()
+#	for x,y in zip(bezierpointsX, bezierpointsY):        
+#	   
+#		for x1,y1 in zip(x,y):
+#			plt.scatter(x1,y1)
+#			
+#	plt.show()
 	return bezierpointsX,bezierpointsY
 
 
