@@ -71,7 +71,7 @@ def createPoints():
 	xcor,ycor = getxycor(root) 
 	symbol, indices = getSymbolIndices(root)
 
-   
+
 	#inkmlfilelocation = "TrainINKML_v3/expressmatch/65_alfonso.inkml"
 	inkmlfile = os.path.basename(inkmlfilelocation)
 
@@ -80,7 +80,7 @@ def createPoints():
 
 	relations = get_spatialRelations(lgfilepath)
 	symbolpairs = getsymbolspairs(len(symbol))
- 
+
 
 	indices = sorted(indices, key=lambda x: x[0], reverse=False)
 
@@ -110,10 +110,10 @@ def createPoints():
 			bezierpointsX,bezierpointsY = getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY)    
 
 		exit()
-   
+
 
 	
-				  
+				
 def normalizedPoints_SegmentStrokes(indices,symbolpointsX,symbolpointsY):
 
 	xmin,ymin = 999999, 999999
