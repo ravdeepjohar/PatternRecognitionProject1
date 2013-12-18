@@ -109,8 +109,6 @@ def createPoints():
 			symbolpointsX,symbolpointsY = normalizedPoints_SegmentStrokes(ind,symbolpointsX,symbolpointsY)  
 			bezierpointsX,bezierpointsY = getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY)    
 
-
-	
 		exit()
    
 
