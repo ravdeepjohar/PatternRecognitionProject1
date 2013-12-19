@@ -127,14 +127,14 @@ def createPoints():
 
 					grid=calculateShapeFeatures(bezierpointsX, bezierpointsY, numRadii, numTheta)
 
-					featurelist = []
-					for g in grid:
-						for val in g:
-							featurelist.append(val)
+					# featurelist = []
+					# for g in grid:
+					# 	for val in g:
+					# 		featurelist.append(val)
 
-					#print len(featurelist),  getRelationClass(relations[(stroke1, stroke2)])
+					#print len(grid),  getRelationClass(relations[(stroke1, stroke2)])
 					#exit()
-					X.append(featurelist)
+					X.append(grid)
 					y.append(getRelationClass(relations[(stroke1, stroke2)]))
 
 
@@ -440,9 +440,9 @@ def calculateShapeFeatures(bezierPointsX, bezierPointsY, radialOffset, angleOffs
 	
 	grid = []	
 	
-	print distance
-	print deltaRadius
-	print deltaTheta * 180 / (2*np.pi)	
+	#print distance
+	#print deltaRadius
+	#print deltaTheta * 180 / (2*np.pi)	
 	
 	plotTheta = []
 	plotRadius = []
