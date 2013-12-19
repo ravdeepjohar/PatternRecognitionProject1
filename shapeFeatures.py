@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import xml.etree.ElementTree as ET
-import cPickle as pickle
+import pickle
 from scipy.misc import comb
 import numpy as np
 import os
@@ -128,11 +128,7 @@ def createPoints():
 					bezierpointsX, bezierpointsY = getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY)    
 
 					grid=calculateShapeFeatures(bezierpointsX, bezierpointsY, numRadii, numTheta)
-
-					# featurelist = []
-					# for g in grid:
-					# 	for val in g:
-					# 		featurelist.append(val)
+		
 
 					#print len(grid),  getRelationClass(relations[(stroke1, stroke2)])
 					#exit()
@@ -159,27 +155,24 @@ def createPoints():
 		count += 1
 
 		
-	print len(X), (y)
-	pickle.dump( X, open( "train2X.p", "wb" ) )
-	pickle.dump( y, open( "train2y.p", "wb" ) )
+	pickle.dump( X, open( "train3X.p", "wb" ) )
+	pickle.dump( y, open( "train3y.p", "wb" ) )
 
 	# patEndTime=time.time()
 	# 	print 'one file', patEndTime-patStartTime,'seconds'
 
-	pca = PCA(n_components=35)
-	pca = pca.fit(X)
+	# pca = PCA(n_components=35)
+	# pca = pca.fit(X)
 
-	pickle.dump( pca, open( "spatialpca.p", "wb" ) )
+	# pickle.dump( pca, open( "spatialpca.p", "wb" ) )
 
-	pcaX = pca.transform(X)
-	yes, no = 0.0, 0.0 
+	# pcaX = pca.transform(X)
+	# yes, no = 0.0, 0.0 
 
-	spatialSVM = svm.SVC()
-	spatialSVM = spatialSVM.fit(pcaX, y)
+	# spatialSVM = svm.SVC()
+	# spatialSVM = spatialSVM.fit(pcaX, y)	
 
-	
-
-	pickle.dump( spatialSVM, open( "spatialsvm.p", "wb" ) )
+	# pickle.dump( spatialSVM, open( "spatialsvm.p", "wb" ) )
 
 
 
