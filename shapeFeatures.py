@@ -428,10 +428,10 @@ def calculateShapeFeatures(bezierPointsX, bezierPointsY, radialOffset, angleOffs
 			maxPoint = [x2, y2]
 		
 	
-	scatter(bezierPointsX1 + bezierPointsX2, bezierPointsY1 + bezierPointsY2)
-	scatter(centerOfMass1[0], centerOfMass1[1], color = 'red')
-	scatter(centerOfMass2[0], centerOfMass2[1], color = 'green')
-	scatter(center[0], center[1], color = 'black')
+#	scatter(bezierPointsX1 + bezierPointsX2, bezierPointsY1 + bezierPointsY2)
+#	scatter(centerOfMass1[0], centerOfMass1[1], color = 'red')
+#	scatter(centerOfMass2[0], centerOfMass2[1], color = 'green')
+#	scatter(center[0], center[1], color = 'black')
 	
 	radius = 0.0
 	nextRadius = 0.0
@@ -440,6 +440,12 @@ def calculateShapeFeatures(bezierPointsX, bezierPointsY, radialOffset, angleOffs
 	
 	grid = []	
 	
+	print distance
+	print deltaRadius
+	print deltaTheta * 180 / (2*np.pi)	
+	
+	plotTheta = []
+	plotRadius = []
 	for i in range(radialOffset):
 		radius = nextRadius
 		nextRadius += deltaRadius
@@ -453,34 +459,57 @@ def calculateShapeFeatures(bezierPointsX, bezierPointsY, radialOffset, angleOffs
 			nextTheta += deltaTheta
 			numleftpoints = 0
 			numrightpoints = 0
+			plotTheta.append(theta)
+			plotRadius.append(radius)
 			xcor.append(nextRadius*cos(theta) + center[0])
 			ycor.append(nextRadius*sin(theta) + center[1])
 			for x, y in zip(bezierPointsX1, bezierPointsY1):
 				pdist = calculateEuclidean(center, [x, y])
-				ptheta = myAtan2(y, x)
+				ptheta = myAtan2(y - center[1], x - center[0])
 				if (pdist >= radius and pdist < nextRadius and ptheta >= theta and ptheta < nextTheta):
 					numleftpoints += 1
 					
 			for x, y in zip(bezierPointsX2, bezierPointsY2):
 				pdist = calculateEuclidean(center, [x, y])
-				ptheta = myAtan2(y, x)
+				ptheta = myAtan2(y - center[1], x - center[0])
 				if (pdist >= radius and pdist < nextRadius and ptheta >= theta and ptheta < nextTheta):
 					numrightpoints += 1
 			
 			if (numleftpoints > numrightpoints):
-				row.append(-1)
+				grid.append(-1)
 			elif(numleftpoints == 0 and numrightpoints == 0):
-				row.append(0)
+				grid.append(0)
 			elif(numleftpoints <= numrightpoints):
-				row.append(1)
-		
-		xcor.append(nextRadius*cos(nextTheta) + center[0])
-		ycor.append(nextRadius*sin(nextTheta) + center[1])
-		plt.plot(xcor, ycor)
-		grid.append(row)
-
-	#plt.show()
+				grid.append(1)
+	#print grid
+#-------------------comment from here to disable plotting-------------------------
+#		xcor.append(nextRadius*cos(nextTheta) + center[0])
+#		ycor.append(nextRadius*sin(nextTheta) + center[1])
+#		plt.plot(xcor, ycor)
+#		#grid.append(row)
 	
+		
+#	theta = 0.0
+#	for i in range(angleOffset):
+#		plt.plot([center[0], distance*cos(deltaTheta*i) + center[0]], [center[1], distance*sin(deltaTheta*i)+center[1]])
+#		
+#	
+#	fig = plt.figure()
+#	ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
+#	color = ['lightgreen','white','red']
+#	for i in xrange(angleOffset * radialOffset):
+#		c = 'white'
+#		if grid[i] == 1:
+#			c = color[2]
+#		elif grid[i] == -1:
+#			c = color[0]
+#    
+#		ax.bar(i * 2 * np.pi / angleOffset, 1, width=2 * np.pi / angleOffset, bottom=i / angleOffset,
+#	           color=c, edgecolor = c)
+#	plt.ylim(0,radialOffset)
+#	ax.set_yticks([])
+#	plt.show()
+		
 	return grid
 	
 				
