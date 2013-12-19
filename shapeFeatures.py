@@ -138,7 +138,7 @@ def createPoints():
 					y.append(getRelationClass(relations[(stroke1, stroke2)]))
 
 
-	pca = PCA(n_components=100)
+	pca = PCA(n_components=35)
 	pca = pca.fit(X)
 
 	pickle.dump( pca, open( "spatialpca.p", "wb" ) )
