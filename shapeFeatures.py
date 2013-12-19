@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
 
 import xml.etree.ElementTree as ET
+import cPickle as pickle
 from scipy.misc import comb
 import numpy as np
 import os
 import matplotlib.pyplot as plt
 from pylab import *
+from sklearn.decomposition import PCA
+from sklearn import svm
+
 
 indexFile = open("index.csv")
 classDict = {}
-bezierpoints = []
-bezierpointsX,bezierpointsY = [], []
 numRadii = 15
 numTheta = 20
+
+relationToClass = {'R':1,'A':2,'B':2,'I':3,'Sup':4,'Sub':5}
 
 for line in indexFile:
 	 classDict[line.split(",")[0]]= int((line.split(",")[1]).strip())
@@ -65,60 +69,173 @@ def getsymbolspairs(noofstrokes):
 	return strokepairs
 
 def createPoints():
-	global bezierpointsX,bezierpointsY
-	#inkmlfilelocation =  line[:-1].strip()
-	inkmlfilelocation = "TrainINKML_v3/expressmatch/65_alfonso.inkml"
-	tree = ET.parse(inkmlfilelocation)
-	#tree = ET.parse('../expressmatch/79_edwin.inkml')
-	root = tree.getroot() 
+	
+	fTrain = open("train.txt", 'rb')
+	#fTest = open("test2.txt",'rb')
 
-	xcor,ycor = getxycor(root) 
-	symbol, indices = getSymbolIndices(root)
+	os.chdir("TrainINKML_v3")
 
-   
-	#inkmlfilelocation = "TrainINKML_v3/expressmatch/65_alfonso.inkml"
-	inkmlfile = os.path.basename(inkmlfilelocation)
+	X, y = [], []
+	testX, testy = [], []
 
-	base = os.path.splitext(inkmlfile)[0]
-	lgfilepath = "all_lg/"+base+".lg"
+	for line in fTrain:
 
-	relations = get_spatialRelations(lgfilepath)
-	symbolpairs = getsymbolspairs(len(symbol))
- 
+		inkmlfilelocation =  line[:-1].strip()
+		if inkmlfilelocation.endswith(".inkml"):
+			#inkmlfilelocation = "TrainINKML_v3/expressmatch/101_alfonso.inkml"
+			tree = ET.parse(inkmlfilelocation)
+			
+			root = tree.getroot() 
 
-	indices = sorted(indices, key=lambda x: x[0], reverse=False)
+			xcor,ycor = getxycor(root) 
+			symbol, indices = getSymbolIndices(root)
+		   
+			inkmlfile = os.path.basename(inkmlfilelocation)
+			base = os.path.splitext(inkmlfile)[0]
+			lgfilepath = "../all_lg/"+base+".lg"
 
-	#print indices
+			relations = get_spatialRelations(lgfilepath)
+			symbolpairs = getsymbolspairs(len(symbol))
+		 
 
-	#print symbolpairs
+			indices = sorted(indices, key=lambda x: x[0], reverse=False)
+
+			#print indices
+
+			#print symbolpairs		
+
+			for sympair in symbolpairs:
+				
+
+				firstsymbol = sympair[0]
+				secondsymbol = sympair[1]
+
+				#print indices[firstsymbol], indices[secondsymbol]
+
+				stroke1 = indices[firstsymbol][-1]
+				stroke2 = indices[secondsymbol][-0]
+
+				if (stroke1, stroke2) in relations:
+					#print (stroke1, stroke2),  relations[(stroke1, stroke2)] 
+
+					ind = [indices[firstsymbol],indices[secondsymbol]]
+
+					#print ind
+					symbolpointsX,symbolpointsY = shiftPoints_SegmentStrokes(ind,xcor,ycor) 
+					symbolpointsX,symbolpointsY = normalizedPoints_SegmentStrokes(ind,symbolpointsX,symbolpointsY)  
+					bezierpointsX, bezierpointsY = getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY)    
+
+					grid=calculateShapeFeatures(bezierpointsX, bezierpointsY, numRadii, numTheta)
+
+					featurelist = []
+					for g in grid:
+						for val in g:
+							featurelist.append(val)
+
+					#print len(featurelist),  getRelationClass(relations[(stroke1, stroke2)])
+					#exit()
+					X.append(featurelist)
+					y.append(getRelationClass(relations[(stroke1, stroke2)]))
+
+
+	pca = PCA(n_components=100)
+	pca = pca.fit(X)
+
+	pickle.dump( pca, open( "spatialpca.p", "wb" ) )
+
+	pcaX = pca.transform(X)
+	yes, no = 0.0, 0.0 
+
+	spatialSVM = svm.SVC()
+	spatialSVM = spatialSVM.fit(pcaX, y)
+
+	pickle.dump( spatialSVM, open( "spatialsvm.p", "wb" ) )
+	
+
+	# for line in fTest:
+
+	# 	inkmlfilelocation =  line[:-1].strip()
+	# 	if inkmlfilelocation.endswith(".inkml"):
+	# 		#inkmlfilelocation = "TrainINKML_v3/expressmatch/101_alfonso.inkml"
+	# 		tree = ET.parse(inkmlfilelocation)
+			
+	# 		root = tree.getroot() 
+
+	# 		xcor,ycor = getxycor(root) 
+	# 		symbol, indices = getSymbolIndices(root)
+		   
+	# 		inkmlfile = os.path.basename(inkmlfilelocation)
+	# 		base = os.path.splitext(inkmlfile)[0]
+	# 		lgfilepath = "../all_lg/"+base+".lg"
+
+	# 		relations = get_spatialRelations(lgfilepath)
+	# 		symbolpairs = getsymbolspairs(len(symbol))
+		 
+
+	# 		indices = sorted(indices, key=lambda x: x[0], reverse=False)
+
+	# 		#print indices
+
+	# 		#print symbolpairs		
+
+	# 		for sympair in symbolpairs:
+				
+
+	# 			firstsymbol = sympair[0]
+	# 			secondsymbol = sympair[1]
+
+	# 			#print indices[firstsymbol], indices[secondsymbol]
+
+	# 			stroke1 = indices[firstsymbol][-1]
+	# 			stroke2 = indices[secondsymbol][-0]
+
+	# 			if (stroke1, stroke2) in relations:
+	# 				#print (stroke1, stroke2),  relations[(stroke1, stroke2)] 
+
+	# 				ind = [indices[firstsymbol],indices[secondsymbol]]
+
+	# 				#print ind
+	# 				symbolpointsX,symbolpointsY = shiftPoints_SegmentStrokes(ind,xcor,ycor) 
+	# 				symbolpointsX,symbolpointsY = normalizedPoints_SegmentStrokes(ind,symbolpointsX,symbolpointsY)  
+	# 				bezierpointsX, bezierpointsY = getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY)    
+
+	# 				grid=calculateShapeFeatures(bezierpointsX, bezierpointsY, numRadii, numTheta)
+
+	# 				featurelist = []
+	# 				for g in grid:
+	# 					for val in g:
+	# 						featurelist.append(val)
+
+	# 				#print len(featurelist),  getRelationClass(relations[(stroke1, stroke2)])
+	# 				#exit()
+	# 				pcaTextX = pca.transform([featurelist])
+	# 				testy = getRelationClass(relations[(stroke1, stroke2)])
+					
+	# 				val = spatialSVM.predict(pcaTextX[0])[0]
+
+	# 				if (val == testy):
+	# 					yes += 1
+
+	# 				else:
+
+	# 					no += 1
+
+
+
+
+	# print "Accuracy:" + str((yes/float(yes+no)*100))		
+	# print len(X), len (y)
 	
 	
 
-	for sympair in [symbolpairs[0]]:
-		
 
-		firstsymbol = sympair[0]
-		secondsymbol = sympair[1]
 
-		#print indices[firstsymbol], indices[secondsymbol]
 
-		stroke1 = indices[firstsymbol][-1]
-		stroke2 = indices[secondsymbol][-0]
+def getRelationClass(relation):
 
-		if (stroke1, stroke2) in relations:
-			#print (stroke1, stroke2),  relations[(stroke1, stroke2)] 
+	global relationToClass
 
-			ind = [indices[firstsymbol],indices[secondsymbol]]
-
-			#print ind
-			symbolpointsX,symbolpointsY = shiftPoints_SegmentStrokes(ind,xcor,ycor)  
-
-			symbolpointsX,symbolpointsY = normalizedPoints_SegmentStrokes(ind,symbolpointsX,symbolpointsY)  
-			bezierpointsX, bezierpointsY = getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY)    
-
-			calculateShapeFeatures(bezierpointsX, bezierpointsY, numRadii, numTheta)
-   
-
+	return relationToClass[relation]
 	
 				  
 def normalizedPoints_SegmentStrokes(indices,symbolpointsX,symbolpointsY):
@@ -184,6 +301,7 @@ def normalizedPoints_SegmentStrokes(indices,symbolpointsX,symbolpointsY):
 		
 
 	return symbolpointsX,symbolpointsY
+
 def shiftPoints_SegmentStrokes(indices,xcor,ycor):
 
 	symbolpointsX = []
@@ -360,8 +478,10 @@ def calculateShapeFeatures(bezierPointsX, bezierPointsY, radialOffset, angleOffs
 		ycor.append(nextRadius*sin(nextTheta) + center[1])
 		plt.plot(xcor, ycor)
 		grid.append(row)
+
+	#plt.show()
 	
-	print grid
+	return grid
 	
 				
 			
@@ -478,7 +598,7 @@ def getMinMax(x,y):
 def main():	
 	createPoints()
 	#calculateShapeFeatures(0, 1, 5, 5)
-	
+	#print getRelationClass("A")
 	
 	
 		
