@@ -9,12 +9,13 @@ import matplotlib.pyplot as plt
 from pylab import *
 from sklearn.decomposition import PCA
 from sklearn import svm
+import time 
 
 
 indexFile = open("index.csv")
 classDict = {}
-numRadii = 15
-numTheta = 20
+numRadii = 10
+numTheta = 15
 
 relationToClass = {'R':1,'A':2,'B':2,'I':3,'Sup':4,'Sub':5}
 
@@ -22,7 +23,8 @@ for line in indexFile:
 	 classDict[line.split(",")[0]]= int((line.split(",")[1]).strip())
 		
 indexFile.close()
-		
+
+
 def bernstein_poly(i, n, t):
 		"""
 		 The Bernstein polynomial of n, i as a function of t
@@ -69,15 +71,15 @@ def getsymbolspairs(noofstrokes):
 	return strokepairs
 
 def createPoints():
-	
-	fTrain = open("train.txt", 'rb')
+	patStartTime=time.time()
+	fTrain = open("train3.txt", 'rb')
 	#fTest = open("test2.txt",'rb')
 
 	os.chdir("TrainINKML_v3")
 
 	X, y = [], []
 	testX, testy = [], []
-
+	count = 0
 	for line in fTrain:
 
 		inkmlfilelocation =  line[:-1].strip()
@@ -137,6 +139,32 @@ def createPoints():
 					X.append(grid)
 					y.append(getRelationClass(relations[(stroke1, stroke2)]))
 
+				else: 
+					#print (stroke1, stroke2),  str(6)
+					ind = [indices[firstsymbol],indices[secondsymbol]]
+
+					#print ind
+					symbolpointsX,symbolpointsY = shiftPoints_SegmentStrokes(ind,xcor,ycor) 
+					symbolpointsX,symbolpointsY = normalizedPoints_SegmentStrokes(ind,symbolpointsX,symbolpointsY)  
+					bezierpointsX, bezierpointsY = getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY)    
+
+					grid=calculateShapeFeatures(bezierpointsX, bezierpointsY, numRadii, numTheta)
+					X.append(grid)
+					y.append(6)
+
+		# for x1,y1 in zip(X,y):
+		# 	print len(x1),y1
+
+		print count
+		count += 1
+
+		
+	print len(X), (y)
+	pickle.dump( X, open( "train2X.p", "wb" ) )
+	pickle.dump( y, open( "train2y.p", "wb" ) )
+
+	# patEndTime=time.time()
+	# 	print 'one file', patEndTime-patStartTime,'seconds'
 
 	pca = PCA(n_components=35)
 	pca = pca.fit(X)
@@ -149,84 +177,9 @@ def createPoints():
 	spatialSVM = svm.SVC()
 	spatialSVM = spatialSVM.fit(pcaX, y)
 
+	
+
 	pickle.dump( spatialSVM, open( "spatialsvm.p", "wb" ) )
-	
-
-	# for line in fTest:
-
-	# 	inkmlfilelocation =  line[:-1].strip()
-	# 	if inkmlfilelocation.endswith(".inkml"):
-	# 		#inkmlfilelocation = "TrainINKML_v3/expressmatch/101_alfonso.inkml"
-	# 		tree = ET.parse(inkmlfilelocation)
-			
-	# 		root = tree.getroot() 
-
-	# 		xcor,ycor = getxycor(root) 
-	# 		symbol, indices = getSymbolIndices(root)
-		   
-	# 		inkmlfile = os.path.basename(inkmlfilelocation)
-	# 		base = os.path.splitext(inkmlfile)[0]
-	# 		lgfilepath = "../all_lg/"+base+".lg"
-
-	# 		relations = get_spatialRelations(lgfilepath)
-	# 		symbolpairs = getsymbolspairs(len(symbol))
-		 
-
-	# 		indices = sorted(indices, key=lambda x: x[0], reverse=False)
-
-	# 		#print indices
-
-	# 		#print symbolpairs		
-
-	# 		for sympair in symbolpairs:
-				
-
-	# 			firstsymbol = sympair[0]
-	# 			secondsymbol = sympair[1]
-
-	# 			#print indices[firstsymbol], indices[secondsymbol]
-
-	# 			stroke1 = indices[firstsymbol][-1]
-	# 			stroke2 = indices[secondsymbol][-0]
-
-	# 			if (stroke1, stroke2) in relations:
-	# 				#print (stroke1, stroke2),  relations[(stroke1, stroke2)] 
-
-	# 				ind = [indices[firstsymbol],indices[secondsymbol]]
-
-	# 				#print ind
-	# 				symbolpointsX,symbolpointsY = shiftPoints_SegmentStrokes(ind,xcor,ycor) 
-	# 				symbolpointsX,symbolpointsY = normalizedPoints_SegmentStrokes(ind,symbolpointsX,symbolpointsY)  
-	# 				bezierpointsX, bezierpointsY = getBezier_SegmentationStrokes(indices,symbolpointsX,symbolpointsY)    
-
-	# 				grid=calculateShapeFeatures(bezierpointsX, bezierpointsY, numRadii, numTheta)
-
-	# 				featurelist = []
-	# 				for g in grid:
-	# 					for val in g:
-	# 						featurelist.append(val)
-
-	# 				#print len(featurelist),  getRelationClass(relations[(stroke1, stroke2)])
-	# 				#exit()
-	# 				pcaTextX = pca.transform([featurelist])
-	# 				testy = getRelationClass(relations[(stroke1, stroke2)])
-					
-	# 				val = spatialSVM.predict(pcaTextX[0])[0]
-
-	# 				if (val == testy):
-	# 					yes += 1
-
-	# 				else:
-
-	# 					no += 1
-
-
-
-
-	# print "Accuracy:" + str((yes/float(yes+no)*100))		
-	# print len(X), len (y)
-	
-	
 
 
 
@@ -428,10 +381,10 @@ def calculateShapeFeatures(bezierPointsX, bezierPointsY, radialOffset, angleOffs
 			maxPoint = [x2, y2]
 		
 	
-#	scatter(bezierPointsX1 + bezierPointsX2, bezierPointsY1 + bezierPointsY2)
-#	scatter(centerOfMass1[0], centerOfMass1[1], color = 'red')
-#	scatter(centerOfMass2[0], centerOfMass2[1], color = 'green')
-#	scatter(center[0], center[1], color = 'black')
+	# scatter(bezierPointsX1 + bezierPointsX2, bezierPointsY1 + bezierPointsY2)
+	# scatter(centerOfMass1[0], centerOfMass1[1], color = 'red')
+	# scatter(centerOfMass2[0], centerOfMass2[1], color = 'green')
+	# scatter(center[0], center[1], color = 'black')
 	
 	radius = 0.0
 	nextRadius = 0.0
@@ -483,32 +436,32 @@ def calculateShapeFeatures(bezierPointsX, bezierPointsY, radialOffset, angleOffs
 				grid.append(1)
 	#print grid
 #-------------------comment from here to disable plotting-------------------------
-#		xcor.append(nextRadius*cos(nextTheta) + center[0])
-#		ycor.append(nextRadius*sin(nextTheta) + center[1])
-#		plt.plot(xcor, ycor)
-#		#grid.append(row)
+	# 	xcor.append(nextRadius*cos(nextTheta) + center[0])
+	# 	ycor.append(nextRadius*sin(nextTheta) + center[1])
+	# 	plt.plot(xcor, ycor)
+	# 	#grid.append(row)
 	
 		
-#	theta = 0.0
-#	for i in range(angleOffset):
-#		plt.plot([center[0], distance*cos(deltaTheta*i) + center[0]], [center[1], distance*sin(deltaTheta*i)+center[1]])
-#		
-#	
-#	fig = plt.figure()
-#	ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
-#	color = ['lightgreen','white','red']
-#	for i in xrange(angleOffset * radialOffset):
-#		c = 'white'
-#		if grid[i] == 1:
-#			c = color[2]
-#		elif grid[i] == -1:
-#			c = color[0]
-#    
-#		ax.bar(i * 2 * np.pi / angleOffset, 1, width=2 * np.pi / angleOffset, bottom=i / angleOffset,
-#	           color=c, edgecolor = c)
-#	plt.ylim(0,radialOffset)
-#	ax.set_yticks([])
-#	plt.show()
+	# theta = 0.0
+	# for i in range(angleOffset):
+	# 	plt.plot([center[0], distance*cos(deltaTheta*i) + center[0]], [center[1], distance*sin(deltaTheta*i)+center[1]])
+		
+	
+	# fig = plt.figure()
+	# ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)
+	# color = ['lightgreen','white','red']
+	# for i in xrange(angleOffset * radialOffset):
+	# 	c = 'white'
+	# 	if grid[i] == 1:
+	# 		c = color[2]
+	# 	elif grid[i] == -1:
+	# 		c = color[0]
+   
+	# 	ax.bar(i * 2 * np.pi / angleOffset, 1, width=2 * np.pi / angleOffset, bottom=i / angleOffset,
+	#            color=c, edgecolor = c)
+	# plt.ylim(0,radialOffset)
+	# ax.set_yticks([])
+	# plt.show()
 		
 	return grid
 	
