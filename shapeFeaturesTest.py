@@ -964,6 +964,7 @@ def createPoints():
 	for line in fTest:
 
 		inkmlfilelocation =  line[:-1].strip()
+		
 		if inkmlfilelocation.endswith(".inkml"):
 			#inkmlfilelocation = "TrainINKML_v3/expressmatch/101_alfonso.inkml"
 			tree = ET.parse(inkmlfilelocation)
@@ -1011,8 +1012,8 @@ def createPoints():
 	
 			#print classifiedSymbols
 			
-			#inkmlfile = os.path.basename(inkmlfilelocation)
-			#base = os.path.splitext(inkmlfile)[0]
+			inkmlfile = os.path.basename(inkmlfilelocation)
+			base = os.path.splitext(inkmlfile)[0]
 			#lgfilepath = "../all_lg/"+base+".lg"
 
 			#relations = get_spatialRelations(lgfilepath)
@@ -1057,12 +1058,12 @@ def createPoints():
 				#print (stroke1, stroke2),  relations[(stroke1, stroke2)], val
 				vals.append(val)
 					
-			generate_LG(symbolindices, symbolpairs, classifiedSymbols, vals)			
+			generate_LG(symbolindices, symbolpairs, classifiedSymbols, vals, base)			
 	
 	
 	
 
-def generate_LG(symbolindices, symbolpairs, classifiedsymbols, vals):
+def generate_LG(symbolindices, symbolpairs, classifiedsymbols, vals, filename):
 	
 	if not os.path.exists('nnlg'):
 		os.makedirs('nnlg')	
@@ -1070,7 +1071,7 @@ def generate_LG(symbolindices, symbolpairs, classifiedsymbols, vals):
 	lg = []
 	#print vals
 	#print symbolpairs
-	print symbolindices
+	#print symbolindices
 #	for i in range(len(classifiedsymbols)):
 #		print classDict2[classifiedsymbols[i]], symbolindices[i]
 	edges = []
@@ -1132,7 +1133,7 @@ def generate_LG(symbolindices, symbolpairs, classifiedsymbols, vals):
 						tempEdge.append(' 1.0')
 						edges.append(tempEdge)
 						
-		print sym1, sym2, val
+		#print sym1, sym2, val
 		for s1 in sym1:
 			for s2 in sym2:
 				tempEdge = []
@@ -1156,7 +1157,7 @@ def generate_LG(symbolindices, symbolpairs, classifiedsymbols, vals):
 		
 	edges = sorted(edges, key=lambda x: int(x[1]), reverse = False)
 	
-	lgFile = open('nnlg/test.lg', 'wb')
+	lgFile = open('nnlg/' + str(filename) + '.lg', 'wb')
 	
 	c = csv.writer(lgFile)
 	
